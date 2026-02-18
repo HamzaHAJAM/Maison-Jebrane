@@ -42,7 +42,9 @@
         .val-prod { color: #F9E586; font-weight: bold; font-size: 1.1em; }
         #status { font-size: 0.6em; padding: 4px 10px; border-radius: 20px; border: 1px solid #D4AF37; color: #D4AF37; }
         .delete-icon { color: #ff4d4d; cursor: pointer; margin-left: auto; opacity: 0.5; }
-        .delete-icon:hover { opacity: 1; }
+        
+        /* Classe pour masquer les colonnes non sélectionnées */
+        .hidden-col { display: none; }
     </style>
 </head>
 <body>
@@ -65,9 +67,18 @@
         </div>
 
         <div class="box">
-            <h3>Focus Production</h3>
+            <h3>Mode d'Affichage</h3>
             <div class="form-row">
-                <select id="filtreJourSelect" onchange="relancerRender()"></select>
+                <select id="viewMode" onchange="relancerRender()">
+                    <option value="semaine">Vue Semaine (Toute)</option>
+                    <option value="Lundi">Lundi Uniquement</option>
+                    <option value="Mardi">Mardi Uniquement</option>
+                    <option value="Mercredi">Mercredi Uniquement</option>
+                    <option value="Jeudi">Jeudi Uniquement</option>
+                    <option value="Vendredi">Vendredi Uniquement</option>
+                    <option value="Samedi">Samedi Uniquement</option>
+                    <option value="Dimanche">Dimanche Uniquement</option>
+                </select>
                 <button class="btn btn-outline" id="btnFiltre" onclick="toggleFiltre()">🔍 Reste > 0 Uniquement</button>
             </div>
         </div>
@@ -144,7 +155,7 @@
       render(globalData);
   };
 
-  window.relancerRender = () => { if(filtreActif) render(globalData); };
+  window.relancerRender = () => { render(globalData); };
 
   function render(data) {
     const containers = data.categories || {};
@@ -152,6 +163,7 @@
     const parent = document.getElementById('listeCategories');
     const selectCat = document.getElementById('selectCat');
     const stockProdSelect = document.getElementById('stockProdSelect');
+    const viewMode = document.getElementById('viewMode').value; // Mode Semaine ou un jour précis
     
     parent.innerHTML = ""; selectCat.innerHTML = ""; stockProdSelect.innerHTML = "";
 
@@ -161,11 +173,20 @@
         
         const section = document.createElement('div');
         section.className = "categorie-container";
+        
+        // Entête du tableau avec masquage dynamique des colonnes jours
+        let headerHtml = `<thead><tr><th>Produits</th>`;
+        jours.forEach(j => {
+            const isHidden = (viewMode !== "semaine" && viewMode !== j) ? "hidden-col" : "";
+            headerHtml += `<th class="${isHidden}">${j}</th>`;
+        });
+        headerHtml += `</tr></thead>`;
+
         section.innerHTML = `
             <div class="cat-title">${catName} <span class="delete-icon" onclick="supprimerCat('${catID}')">✕</span></div>
             <div class="table-container">
                 <table>
-                    <thead><tr><th>Produits</th>${jours.map(j => `<th>${j}</th>`).join('')}</tr></thead>
+                    ${headerHtml}
                     <tbody id="body-${catID}" data-catid="${catID}"></tbody>
                 </table>
             </div>
@@ -181,12 +202,20 @@
             const pName = produits[pID].nom;
             stockProdSelect.add(new Option(`${catName} - ${pName}`, `${catID}/${pID}/${pName}`));
 
-            // --- LOGIQUE DU FILTRE ---
+            // --- FILTRE "RESTE > 0" ---
+            // Si on est en vue "Semaine", le filtre regarde TOUTE la semaine.
+            // Si on est en vue "Journée", il regarde seulement CE jour là.
             if (filtreActif) {
-                const jourChoisi = document.getElementById('filtreJourSelect').value;
-                const vals = (production[pID] && production[pID][jourChoisi]) ? production[pID][jourChoisi] : { obj: 0, stock: 0 };
-                const reste = Math.max(0, (parseInt(vals.obj)||0) - (parseInt(vals.stock)||0));
-                if (reste <= 0) return; // On masque si rien à faire
+                if (viewMode === "semaine") {
+                    const aFaireSemaine = jours.some(j => {
+                        const v = (production[pID] && production[pID][j]) ? production[pID][j] : { obj: 0, stock: 0 };
+                        return (parseInt(v.obj)||0) - (parseInt(v.stock)||0) > 0;
+                    });
+                    if (!aFaireSemaine) return;
+                } else {
+                    const v = (production[pID] && production[pID][viewMode]) ? production[pID][viewMode] : { obj: 0, stock: 0 };
+                    if ((parseInt(v.obj)||0) - (parseInt(v.stock)||0) <= 0) return;
+                }
             }
 
             hasVisibleProduct = true;
@@ -194,10 +223,13 @@
             tr.dataset.id = pID;
             
             let htmlProd = `<td class="prod-name"><span class="handle">☰</span> ${pName} <span class="delete-icon" onclick="supprimerProd('${catID}','${pID}')">✕</span></td>`;
+            
             jours.forEach(j => {
+                const isHidden = (viewMode !== "semaine" && viewMode !== j) ? "hidden-col" : "";
                 const vals = (production[pID] && production[pID][j]) ? production[pID][j] : { obj: 0, stock: 0 };
                 const aFaire = Math.max(0, (parseInt(vals.obj)||0) - (parseInt(vals.stock)||0));
-                htmlProd += `<td><div class="cell-grid">
+                
+                htmlProd += `<td class="${isHidden}"><div class="cell-grid">
                     <div class="sub-cell"><span class="label-sub">Obj</span><input type="number" class="val-obj" value="${vals.obj||0}" onchange="updateVal('${pID}','${j}','obj',this.value)"></div>
                     <div class="sub-cell"><span class="label-sub">Stk</span><span class="val-stock">${vals.stock||0}</span></div>
                     <div class="sub-cell"><span class="label-sub">Rst</span><span class="val-prod">${aFaire}</span></div>
@@ -208,7 +240,6 @@
 
         if (hasVisibleProduct) {
             parent.appendChild(section);
-            // Re-lier Sortable
             new Sortable(tbody, {
                 handle: '.handle', animation: 150,
                 onEnd: function() {
@@ -222,7 +253,7 @@
     });
   }
 
-  // --- EXPORT & FIREBASE ---
+  // --- LOGIQUE COMMUNE ---
   window.exporterExcel = () => {
     const wb = XLSX.utils.book_new();
     const categories = globalData.categories || {};
@@ -291,10 +322,8 @@
     }
   };
 
-  // Initialisation des listes de jours
   jours.forEach(j => {
       document.getElementById('stockJourSelect').add(new Option(j, j));
-      document.getElementById('filtreJourSelect').add(new Option(j, j));
   });
 </script>
 </body>
