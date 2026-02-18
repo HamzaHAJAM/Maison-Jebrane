@@ -42,6 +42,7 @@
         .val-prod { color: #F9E586; font-weight: bold; font-size: 1.1em; }
         #status { font-size: 0.6em; padding: 4px 10px; border-radius: 20px; border: 1px solid #D4AF37; color: #D4AF37; }
         .delete-icon { color: #ff4d4d; cursor: pointer; margin-left: auto; opacity: 0.5; }
+        .delete-icon:hover { opacity: 1; }
     </style>
 </head>
 <body>
@@ -124,18 +125,19 @@
     render(globalData);
   });
 
-  // --- RENDU DES TABLEAUX ---
   function render(data) {
     const containers = data.categories || {};
     const production = data.production || {};
     const parent = document.getElementById('listeCategories');
     const selectCat = document.getElementById('selectCat');
     const stockProdSelect = document.getElementById('stockProdSelect');
+    
     parent.innerHTML = ""; selectCat.innerHTML = ""; stockProdSelect.innerHTML = "";
 
     Object.keys(containers).forEach(catID => {
         const catName = containers[catID].nom;
         selectCat.add(new Option(catName, catID));
+        
         const section = document.createElement('div');
         section.className = "categorie-container";
         section.innerHTML = `
@@ -143,11 +145,12 @@
             <div class="table-container">
                 <table>
                     <thead><tr><th>Produits</th>${jours.map(j => `<th>${j}</th>`).join('')}</tr></thead>
-                    <tbody id="body-${catID}"></tbody>
+                    <tbody id="body-${catID}" data-catid="${catID}"></tbody>
                 </table>
             </div>
         `;
         parent.appendChild(section);
+
         const tbody = document.getElementById(`body-${catID}`);
         const produits = containers[catID].produits || {};
         const sortedKeys = Object.keys(produits).sort((a,b) => (produits[a].ordre || 0) - (produits[b].ordre || 0));
@@ -155,7 +158,10 @@
         sortedKeys.forEach(pID => {
             const pName = produits[pID].nom;
             stockProdSelect.add(new Option(`${catName} - ${pName}`, `${catID}/${pID}/${pName}`));
+            
             const tr = document.createElement('tr');
+            tr.dataset.id = pID; 
+            
             let htmlProd = `<td class="prod-name"><span class="handle">☰</span> ${pName} <span class="delete-icon" onclick="supprimerProd('${catID}','${pID}')">✕</span></td>`;
             jours.forEach(j => {
                 const vals = (production[pID] && production[pID][j]) ? production[pID][j] : { obj: 0, stock: 0 };
@@ -168,43 +174,47 @@
             });
             tr.innerHTML = htmlProd; tbody.appendChild(tr);
         });
+
+        // RE-INITIALISATION DU DRAG AND DROP
+        new Sortable(tbody, {
+            handle: '.handle',
+            animation: 150,
+            onEnd: function() {
+                const rows = tbody.querySelectorAll('tr');
+                rows.forEach((row, index) => {
+                    const pID = row.dataset.id;
+                    update(ref(db, `categories/${catID}/produits/${pID}`), { ordre: index });
+                });
+            }
+        });
     });
   }
 
-  // --- LOGIQUE EXPORT EXCEL (CELLULES FUSIONNÉES + DATES DANS LE NOM) ---
   window.exporterExcel = () => {
     const wb = XLSX.utils.book_new();
     const categories = globalData.categories || {};
     const production = globalData.production || {};
-
-    // Récupération des dates pour le nom du fichier
     const dDebut = document.getElementById('dateDebut').value || "Début";
     const dFin = document.getElementById('dateFin').value || "Fin";
 
     Object.keys(categories).forEach(catID => {
       const catName = categories[catID].nom;
       const produits = categories[catID].produits || {};
-      
       const rows = [];
       const merges = [];
 
-      // LIGNE 1 : Les noms des jours (fusionnés sur 3 colonnes)
-      const row1 = [""]; // Case vide au dessus de "Produits"
+      const row1 = [""];
       jours.forEach((j, index) => {
-        row1.push(j, "", ""); // On met le nom du jour puis 2 cases vides
+        row1.push(j, "", "");
         const startCol = 1 + (index * 3);
         merges.push({ s: { r: 0, c: startCol }, e: { r: 0, c: startCol + 2 } });
       });
       rows.push(row1);
 
-      // LIGNE 2 : Les sous-titres (Obj, Stk, Rst)
       const row2 = ["Produits"];
-      jours.forEach(() => {
-        row2.push("Obj", "Stk", "Rst");
-      });
+      jours.forEach(() => { row2.push("Obj", "Stk", "Rst"); });
       rows.push(row2);
 
-      // LIGNES PRODUITS
       const sortedProdKeys = Object.keys(produits).sort((a,b) => (produits[a].ordre || 0) - (produits[b].ordre || 0));
       sortedProdKeys.forEach(pID => {
         const pName = produits[pID].nom;
@@ -219,14 +229,13 @@
       });
 
       const ws = XLSX.utils.aoa_to_sheet(rows);
-      ws['!merges'] = merges; // Appliquer les fusions
+      ws['!merges'] = merges;
       XLSX.utils.book_append_sheet(wb, ws, catName.substring(0, 31));
     });
 
     XLSX.writeFile(wb, `Maison_Jebrane_Villeparisis_${dDebut}_au_${dFin}.xlsx`);
   };
 
-  // --- FONCTIONS FIREBASE ---
   window.ajouterCategorie = () => {
     const nom = document.getElementById('nomCat').value;
     if(nom) { push(ref(db, 'categories'), { nom: nom }); document.getElementById('nomCat').value = ""; }
