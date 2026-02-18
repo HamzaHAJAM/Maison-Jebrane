@@ -5,43 +5,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Maison Jebrane - Planning Premium</title>
     <style>
-        /* Couleurs : Or (#D4AF37), Or Clair (#F9E586), Noir (#1a1a1a) */
         body { 
             font-family: 'Playfair Display', serif; 
-            margin: 0; 
-            padding: 20px; 
-            background-color: #1a1a1a; 
-            color: #f4f4f4; 
+            margin: 0; padding: 20px; 
+            background-color: #1a1a1a; color: #f4f4f4; 
         }
         .container { max-width: 1100px; margin: auto; }
         
-        /* En-tête */
-        .header { 
-            text-align: center; 
-            margin-bottom: 30px; 
-            border-bottom: 2px solid #D4AF37; 
-            padding-bottom: 20px; 
-        }
+        .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #D4AF37; padding-bottom: 20px; }
         h2 { color: #D4AF37; margin: 0; font-size: 2.5em; text-transform: uppercase; letter-spacing: 2px; }
         .subtitle { color: #f4f4f4; font-size: 1.1em; opacity: 0.8; margin-top: 10px; }
         
-        /* Barre d'outils (Dates + RAZ) */
         .toolbar { 
-            background: #262626; 
-            padding: 15px 25px; 
-            border-radius: 12px; 
-            margin-bottom: 20px; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            border: 1px solid #D4AF37; 
-            flex-wrap: wrap;
-            gap: 15px;
+            background: #262626; padding: 15px 25px; border-radius: 12px; 
+            margin-bottom: 20px; display: flex; justify-content: space-between; 
+            align-items: center; border: 1px solid #D4AF37; flex-wrap: wrap; gap: 15px;
         }
         .dates-config { display: flex; gap: 15px; align-items: center; }
         .dates-config input { background: #1a1a1a; color: #D4AF37; border: 1px solid #D4AF37; padding: 5px; border-radius: 4px; }
 
-        /* Formulaire */
+        .actions-secondaires { display: flex; gap: 10px; }
+
         .formulaire { 
             background: #262626; padding: 25px; border-radius: 12px; 
             margin-bottom: 25px; display: flex; gap: 20px; 
@@ -49,40 +33,29 @@
         }
         .champ { display: flex; flex-direction: column; gap: 8px; }
         label { font-weight: bold; font-size: 0.8em; color: #D4AF37; text-transform: uppercase; }
-        select, input { 
-            padding: 12px; background: #333; color: white; border: 1px solid #555; 
-            border-radius: 6px; font-size: 1em; outline: none;
-        }
-        select:focus, input:focus { border-color: #D4AF37; }
+        select, input { padding: 12px; background: #333; color: white; border: 1px solid #555; border-radius: 6px; }
 
-        /* Boutons */
         .btn-update { 
             background: linear-gradient(45deg, #D4AF37, #F9E586); 
             color: #1a1a1a; border: none; padding: 12px 30px; 
             border-radius: 6px; cursor: pointer; font-weight: bold; 
             text-transform: uppercase; transition: 0.3s;
         }
-        .btn-reset { 
-            background: transparent; color: #ff4d4d; border: 1px solid #ff4d4d; 
-            padding: 10px 15px; border-radius: 6px; cursor: pointer; 
-            font-size: 0.8em; font-weight: bold; transition: 0.3s;
-        }
-        .btn-reset:hover { background: #ff4d4d; color: white; }
-        .btn-update:hover { transform: scale(1.05); box-shadow: 0 0 15px rgba(212, 175, 55, 0.4); }
+        .btn-export { background: #D4AF37; color: #1a1a1a; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-size: 0.8em; font-weight: bold; }
+        .btn-reset { background: transparent; color: #ff4d4d; border: 1px solid #ff4d4d; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-size: 0.8em; font-weight: bold; }
+        
+        button:hover { transform: scale(1.02); opacity: 0.9; }
 
-        /* Tableau Premium */
         .table-container { overflow-x: auto; border-radius: 12px; border: 1px solid #D4AF37; }
         table { border-collapse: collapse; width: 100%; background: #262626; }
         th, td { border: 1px solid #3d3d3d; padding: 15px; text-align: center; }
-        th { background-color: #1a1a1a; color: #D4AF37; text-transform: uppercase; font-size: 0.9em; letter-spacing: 1px; }
-        tr:nth-child(even) { background-color: #2d2d2d; }
+        th { background-color: #1a1a1a; color: #D4AF37; text-transform: uppercase; font-size: 0.9em; }
         td:first-child { font-weight: bold; text-align: left; color: #D4AF37; background: #1a1a1a; }
         
-        /* Statut */
+        .valeur-positive { color: #F9E586; font-weight: bold; font-size: 1.2em; text-shadow: 0 0 5px rgba(249, 229, 134, 0.5); }
         #status { font-size: 0.7em; padding: 5px 12px; border-radius: 20px; }
         .online { border: 1px solid #D4AF37; color: #D4AF37; }
         .offline { border: 1px solid #ff4d4d; color: #ff4d4d; }
-        .valeur-positive { color: #F9E586; font-weight: bold; font-size: 1.2em; text-shadow: 0 0 5px rgba(249, 229, 134, 0.5); }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
 </head>
@@ -92,7 +65,7 @@
     <div class="header">
         <h2>Maison Jebrane</h2>
         <p class="subtitle">Gestion de Production Haute Pâtisserie</p>
-        <span id="status" class="offline">Recherche du signal...</span>
+        <span id="status" class="offline">Connexion...</span>
     </div>
 
     <div class="toolbar">
@@ -102,7 +75,10 @@
             <label>au</label>
             <input type="date" id="dateFin" onchange="sauverDates()">
         </div>
-        <button class="btn-reset" onclick="reinitialiserTableau()">∅ Remettre à zéro</button>
+        <div class="actions-secondaires">
+            <button class="btn-export" onclick="exporterCSV()">📥 Exporter la semaine</button>
+            <button class="btn-reset" onclick="reinitialiserTableau()">∅ Remettre à zéro</button>
+        </div>
     </div>
 
     <div class="formulaire">
@@ -123,11 +99,7 @@
 
     <div class="table-container">
         <table>
-            <thead>
-                <tr id="enteteTableau">
-                    <th>Collections</th>
-                </tr>
-            </thead>
+            <thead><tr id="enteteTableau"><th>Collections</th></tr></thead>
             <tbody id="corpsTableau"></tbody>
         </table>
     </div>
@@ -180,6 +152,33 @@
     if(confirm("Confirmez-vous la réinitialisation complète de la semaine ?")) {
         remove(ref(db, 'commandes'));
     }
+  };
+
+  // NOUVELLE FONCTION D'EXPORTATION
+  window.exporterCSV = function() {
+    let csvContent = "data:text/csv;charset=utf-8,";
+    // En-tête du fichier CSV
+    csvContent += "Gateau," + jours.join(",") + "\n";
+
+    // Récupération des données du tableau
+    const lignes = corps.querySelectorAll('tr');
+    lignes.forEach(ligne => {
+        let cols = ligne.querySelectorAll('td');
+        let dataLigne = [];
+        cols.forEach(col => dataLigne.push(col.innerText));
+        csvContent += dataLigne.join(",") + "\n";
+    });
+
+    // Création du lien de téléchargement
+    const dateD = document.getElementById('dateDebut').value || "debut";
+    const dateF = document.getElementById('dateFin').value || "fin";
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `Production_Maison_Jebrane_${dateD}_au_${dateF}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   onValue(ref(db, 'config/dates'), (snapshot) => {
