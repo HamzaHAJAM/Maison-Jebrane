@@ -33,9 +33,41 @@
         .categorie-container { margin-bottom: 40px; }
         .cat-title { background: #D4AF37; color: #1a1a1a; padding: 10px 20px; border-radius: 8px 8px 0 0; display: flex; justify-content: space-between; align-items: center; font-weight: bold; }
         
-        .table-container { overflow-x: auto; background: #262626; border-radius: 0 0 12px 12px; border: 1px solid #D4AF37; }
-        table { border-collapse: collapse; width: 100%; font-size: 0.8em; }
-        th { background: #1a1a1a; color: #D4AF37; padding: 10px; border: 1px solid #3d3d3d; }
+        /* MODIFICATION POUR LE FIGEMENT */
+        .table-container { 
+            overflow: auto; /* Permet le scroll horizontal et vertical */
+            max-height: 70vh; /* Hauteur max avant de scroller verticalement */
+            background: #262626; 
+            border-radius: 0 0 12px 12px; 
+            border: 1px solid #D4AF37; 
+            position: relative;
+        }
+        
+        table { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 0.8em; }
+        
+        /* Figer l'en-tête (Jours) */
+        thead th { 
+            position: sticky; 
+            top: 0; 
+            z-index: 20; 
+            background: #1a1a1a; 
+            color: #D4AF37; 
+            padding: 10px; 
+            border: 1px solid #3d3d3d; 
+        }
+
+        /* Figer la première colonne (Produits) */
+        th:first-child, td:first-child { 
+            position: sticky; 
+            left: 0; 
+            z-index: 10; 
+            background: #1a1a1a !important; 
+            border-right: 2px solid #D4AF37 !important;
+        }
+
+        /* Intersection en-tête + première colonne (Priorité absolue) */
+        thead th:first-child { z-index: 30; }
+
         td { border: 1px solid #3d3d3d; text-align: center; height: 50px; }
         
         .handle { cursor: grab; color: #D4AF37; padding-right: 10px; font-size: 1.2em; }
@@ -200,24 +232,15 @@
     });
   }
 
-  // --- NOUVELLE FONCTION : RESET STOCK UNIQUEMENT ---
   window.resetStocksUniquement = async () => {
-    if(confirm("Voulez-vous remettre à zéro tous les STOCKS uniquement ? (Les objectifs et les gâteaux seront conservés)")) {
+    if(confirm("Voulez-vous remettre à zéro tous les STOCKS uniquement ?")) {
         const prodRef = ref(db, 'production');
         const snapshot = await get(prodRef);
         if (snapshot.exists()) {
             const production = snapshot.val();
-            // On parcourt chaque produit
             Object.keys(production).forEach(pID => {
-                // On parcourt chaque jour
-                jours.forEach(j => {
-                    if (production[pID][j]) {
-                        // On force le stock à 0 mais on garde l'objectif
-                        production[pID][j].stock = 0;
-                    }
-                });
+                jours.forEach(j => { if (production[pID][j]) production[pID][j].stock = 0; });
             });
-            // On renvoie l'objet modifié vers Firebase
             await set(prodRef, production);
             alert("Stocks réinitialisés !");
         }
