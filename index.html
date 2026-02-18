@@ -40,9 +40,8 @@
         .val-obj { background: transparent; color: #fff; border: none; width: 30px; text-align: center; border-bottom: 1px solid #D4AF37; }
         .val-stock { color: #D4AF37; font-weight: bold; }
         .val-prod { color: #F9E586; font-weight: bold; font-size: 1.1em; }
-        .delete-icon { color: #ff4d4d; cursor: pointer; margin-left: auto; padding-right: 10px; opacity: 0.5; }
-        .delete-icon:hover { opacity: 1; }
         #status { font-size: 0.6em; padding: 4px 10px; border-radius: 20px; border: 1px solid #D4AF37; color: #D4AF37; }
+        .delete-icon { color: #ff4d4d; cursor: pointer; margin-left: auto; opacity: 0.5; }
     </style>
 </head>
 <body>
@@ -66,7 +65,7 @@
         <div class="box">
             <h3>Nouvelle Catégorie</h3>
             <div class="form-row">
-                <input type="text" id="nomCat" placeholder="ex: Entremets, Viennoiseries...">
+                <input type="text" id="nomCat" placeholder="ex: Entremets...">
                 <button class="btn btn-outline" onclick="ajouterCategorie()">+ Créer Tableau</button>
             </div>
         </div>
@@ -75,7 +74,7 @@
             <div class="form-row">
                 <input type="text" id="nomProd" placeholder="Nom du gâteau...">
                 <select id="selectCat"></select>
-                <button class="btn btn-gold" onclick="ajouterProduit()">+ Ajouter au Tableau</button>
+                <button class="btn btn-gold" onclick="ajouterProduit()">+ Ajouter</button>
             </div>
         </div>
         <div class="box">
@@ -92,7 +91,7 @@
     </div>
 
     <div id="listeCategories"></div>
-    <button class="btn btn-danger" style="margin-top:50px;" onclick="resetTotal()">⚠️ Tout Effacer (Catalogue inclus)</button>
+    <button class="btn btn-danger" style="margin-top:50px;" onclick="resetTotal()">⚠️ Tout Effacer</button>
 </div>
 
 <script type="module">
@@ -113,7 +112,6 @@
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
   const jours = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
-
   let globalData = {};
 
   onValue(ref(db, '/'), (snapshot) => {
@@ -126,6 +124,7 @@
     render(globalData);
   });
 
+  // --- RENDU DES TABLEAUX ---
   function render(data) {
     const containers = data.categories || {};
     const production = data.production || {};
@@ -140,7 +139,7 @@
         const section = document.createElement('div');
         section.className = "categorie-container";
         section.innerHTML = `
-            <div class="cat-title" data-name="${catName}">${catName} <span class="delete-icon" onclick="supprimerCat('${catID}')">Supprimer Catégorie</span></div>
+            <div class="cat-title" data-name="${catName}">${catName} <span class="delete-icon" onclick="supprimerCat('${catID}')">✕</span></div>
             <div class="table-container">
                 <table>
                     <thead><tr><th>Produits</th>${jours.map(j => `<th>${j}</th>`).join('')}</tr></thead>
@@ -172,66 +171,62 @@
     });
   }
 
-  // --- NOUVELLE LOGIQUE D'EXPORTATION ROBUSTE ---
+  // --- LOGIQUE EXPORT EXCEL (CELLULES FUSIONNÉES + DATES DANS LE NOM) ---
   window.exporterExcel = () => {
     const wb = XLSX.utils.book_new();
     const categories = globalData.categories || {};
     const production = globalData.production || {};
 
-    if (Object.keys(categories).length === 0) {
-      alert("Aucune donnée à exporter.");
-      return;
-    }
+    // Récupération des dates pour le nom du fichier
+    const dDebut = document.getElementById('dateDebut').value || "Début";
+    const dFin = document.getElementById('dateFin').value || "Fin";
 
     Object.keys(categories).forEach(catID => {
       const catName = categories[catID].nom;
       const produits = categories[catID].produits || {};
       
-      // Préparation de l'en-tête : Produit, puis (Jour Obj, Jour Stk, Jour Rst)
-      const header = ["Produits"];
-      jours.forEach(j => {
-        header.push(`${j}_Obj`, `${j}_Stk`, `${j}_Rst`);
+      const rows = [];
+      const merges = [];
+
+      // LIGNE 1 : Les noms des jours (fusionnés sur 3 colonnes)
+      const row1 = [""]; // Case vide au dessus de "Produits"
+      jours.forEach((j, index) => {
+        row1.push(j, "", ""); // On met le nom du jour puis 2 cases vides
+        const startCol = 1 + (index * 3);
+        merges.push({ s: { r: 0, c: startCol }, e: { r: 0, c: startCol + 2 } });
       });
+      rows.push(row1);
 
-      const rows = [header];
+      // LIGNE 2 : Les sous-titres (Obj, Stk, Rst)
+      const row2 = ["Produits"];
+      jours.forEach(() => {
+        row2.push("Obj", "Stk", "Rst");
+      });
+      rows.push(row2);
 
-      // Tri des produits par ordre
+      // LIGNES PRODUITS
       const sortedProdKeys = Object.keys(produits).sort((a,b) => (produits[a].ordre || 0) - (produits[b].ordre || 0));
-
       sortedProdKeys.forEach(pID => {
         const pName = produits[pID].nom;
         const row = [pName];
-        
         jours.forEach(j => {
           const vals = (production[pID] && production[pID][j]) ? production[pID][j] : { obj: 0, stock: 0 };
           const obj = parseInt(vals.obj) || 0;
           const stk = parseInt(vals.stock) || 0;
-          const rst = Math.max(0, obj - stk);
-          row.push(obj, stk, rst);
+          row.push(obj, stk, Math.max(0, obj - stk));
         });
         rows.push(row);
       });
 
       const ws = XLSX.utils.aoa_to_sheet(rows);
+      ws['!merges'] = merges; // Appliquer les fusions
       XLSX.utils.book_append_sheet(wb, ws, catName.substring(0, 31));
     });
 
-    const dateStr = new Date().toLocaleDateString('fr-FR').replace(/\//g, '-');
-    XLSX.writeFile(wb, `Maison_Jebrane_Villeparisis_${dateStr}.xlsx`);
+    XLSX.writeFile(wb, `Maison_Jebrane_Villeparisis_${dDebut}_au_${dFin}.xlsx`);
   };
 
-  // --- AUTRES FONCTIONS ---
-  window.resetStocksUniquement = async () => {
-    if(confirm("Remettre à zéro tous les STOCKS ?")) {
-        const prodRef = ref(db, 'production');
-        const snapshot = await get(prodRef);
-        if (snapshot.exists()) {
-            const prod = snapshot.val();
-            Object.keys(prod).forEach(pID => { jours.forEach(j => { if (prod[pID][j]) prod[pID][j].stock = 0; }); });
-            await set(prodRef, prod);
-        }
-    }
-  };
+  // --- FONCTIONS FIREBASE ---
   window.ajouterCategorie = () => {
     const nom = document.getElementById('nomCat').value;
     if(nom) { push(ref(db, 'categories'), { nom: nom }); document.getElementById('nomCat').value = ""; }
@@ -244,14 +239,21 @@
   window.updateVal = (pID, jour, type, val) => set(ref(db, `production/${pID}/${jour}/${type}`), val);
   window.validerStock = () => {
     const combo = document.getElementById('stockProdSelect').value.split('/');
-    const jour = document.getElementById('stockJourSelect').value;
-    const val = document.getElementById('stockValeur').value;
-    set(ref(db, `production/${combo[1]}/${jour}/stock`), val);
+    set(ref(db, `production/${combo[1]}/${document.getElementById('stockJourSelect').value}/stock`), document.getElementById('stockValeur').value);
   };
   window.supprimerProd = (catID, pID) => { if(confirm("Supprimer ?")) remove(ref(db, `categories/${catID}/produits/${pID}`)); };
   window.supprimerCat = (catID) => { if(confirm("Supprimer catégorie ?")) remove(ref(db, `categories/${catID}`)); };
   window.sauverDates = () => set(ref(db, 'config/dates'), { debut: document.getElementById('dateDebut').value, fin: document.getElementById('dateFin').value });
   window.resetTotal = () => { if(confirm("TOUT EFFACER ?")) remove(ref(db, '/')); };
+  window.resetStocksUniquement = async () => {
+    const prodRef = ref(db, 'production');
+    const snap = await get(prodRef);
+    if (snap.exists()) {
+        const prod = snap.val();
+        Object.keys(prod).forEach(pID => { jours.forEach(j => { if (prod[pID][j]) prod[pID][j].stock = 0; }); });
+        await set(prodRef, prod);
+    }
+  };
   jours.forEach(j => document.getElementById('stockJourSelect').add(new Option(j, j)));
 </script>
 </body>
