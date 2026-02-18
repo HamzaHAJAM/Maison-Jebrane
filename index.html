@@ -14,7 +14,6 @@
         .logo { height: 50px; }
         h2 { color: #D4AF37; margin: 0; text-transform: uppercase; letter-spacing: 2px; }
         
-        /* Panneau Admin */
         .admin-panel { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; margin-bottom: 25px; }
         .box { background: #262626; padding: 15px; border-radius: 12px; border: 1px solid #444; }
         h3 { color: #D4AF37; font-size: 0.8em; text-transform: uppercase; margin-top: 0; border-bottom: 1px solid #444; padding-bottom: 5px; margin-bottom: 10px; }
@@ -27,7 +26,6 @@
         .btn-outline { background: transparent; border: 1px solid #D4AF37; color: #D4AF37; }
         .btn-danger { background: #721c24; color: #f8d7da; border: 1px solid #f5c6cb; }
         
-        /* Tableaux */
         .categorie-container { margin-bottom: 30px; border: 1px solid #444; border-radius: 12px; overflow: hidden; }
         .cat-title { background: #D4AF37; color: #1a1a1a; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; cursor: grab; }
         .table-container { overflow: auto; max-height: 65vh; background: #262626; }
@@ -41,13 +39,17 @@
         .prod-name { font-weight: bold; text-align: left; padding-left: 10px; min-width: 180px; display: flex; align-items: center; }
         
         .cell-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; }
-        .sub-cell { background: #333; border-radius: 4px; display: flex; flex-direction: column; padding: 4px; }
-        .label-sub { font-size: 0.55em; color: #aaa; }
-        .val-obj { background: transparent; color: #fff; border: none; width: 100%; text-align: center; font-weight: bold; font-size: 1.1em; }
-        .val-stock { color: #D4AF37; font-weight: bold; font-size: 1.1em; }
-        .val-prod { color: #F9E586; font-weight: bold; font-size: 1.2em; }
+        .sub-cell { background: #333; border-radius: 4px; display: flex; flex-direction: column; padding: 4px; transition: 0.3s; }
+        .label-sub { font-size: 0.55em; color: #aaa; margin-bottom: 2px; }
         
-        /* Zoom */
+        /* ALERTES COULEURS */
+        .stock-vide { background-color: #d35400 !important; color: white !important; } /* Orange */
+        .reste-positif { background-color: #c0392b !important; color: white !important; } /* Rouge */
+        
+        .val-obj { background: transparent; color: #fff; border: none; width: 100%; text-align: center; font-weight: bold; font-size: 1.1em; }
+        .val-stock { font-weight: bold; font-size: 1.1em; }
+        .val-prod { font-weight: bold; font-size: 1.2em; }
+        
         body.zoom-large { --cell-padding: 12px; --font-size-base: 1.1em; }
         body.zoom-large .sub-cell { padding: 8px; }
 
@@ -82,12 +84,12 @@
             <div class="form-row">
                 <div style="display:flex; gap:5px;">
                     <input type="text" id="nomCat" placeholder="Ex: Trompe l'oeil..." style="flex:1;">
-                    <button class="btn btn-outline" onclick="ajouterCategorie()" title="Ajouter catégorie">+</button>
+                    <button class="btn btn-outline" onclick="ajouterCategorie()">+</button>
                 </div>
                 <div style="display:flex; gap:5px;">
                     <input type="text" id="nomProd" placeholder="Ex: Pistache..." style="flex:1;">
                     <select id="selectCat" style="flex:1;"></select>
-                    <button class="btn btn-gold" onclick="ajouterProduit()" title="Ajouter produit">+</button>
+                    <button class="btn btn-gold" onclick="ajouterProduit()">+</button>
                 </div>
             </div>
         </div>
@@ -112,11 +114,11 @@
             <h3>4. Affichage</h3>
             <div class="form-row">
                 <div style="display:flex; gap:5px;">
-                    <button class="btn btn-outline" onclick="changeZoom('normal')" style="flex:1;">Mode Normal</button>
-                    <button class="btn btn-outline" onclick="changeZoom('large')" style="flex:1;">Mode Large</button>
+                    <button class="btn btn-outline" onclick="changeZoom('normal')" style="flex:1;">Normal</button>
+                    <button class="btn btn-outline" onclick="changeZoom('large')" style="flex:1;">Large</button>
                 </div>
                 <select id="viewMode" onchange="relancerRender()">
-                    <option value="semaine">📅 Vue Semaine complète</option>
+                    <option value="semaine">📅 Semaine complète</option>
                     <option value="Lundi">Lundi</option><option value="Mardi">Mardi</option>
                     <option value="Mercredi">Mercredi</option><option value="Jeudi">Jeudi</option>
                     <option value="Vendredi">Vendredi</option><option value="Samedi">Samedi</option>
@@ -129,8 +131,8 @@
 
     <div id="listeCategories"></div>
     
-    <div style="margin-top: 50px; padding: 20px; border-top: 1px solid #444; text-align: center;">
-        <button class="btn btn-danger" onclick="resetTotal()">⚠️ RÉINITIALISATION COMPLÈTE DU SYSTÈME</button>
+    <div style="margin-top: 50px; padding: 20px; text-align: center;">
+        <button class="btn btn-danger" onclick="resetTotal()">⚠️ RÉINITIALISATION COMPLÈTE</button>
     </div>
 </div>
 
@@ -156,17 +158,14 @@
   let filtreActif = false;
   let wakeLock = null;
 
-  // Anti-veille
   const requestWakeLock = async () => {
     try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
   };
   document.addEventListener('click', () => { if(!wakeLock) requestWakeLock(); }, { once: true });
 
-  // Zoom
   window.changeZoom = (l) => { document.body.className = `zoom-${l}`; localStorage.setItem('mj-zoom', l); };
   if(localStorage.getItem('mj-zoom')) changeZoom(localStorage.getItem('mj-zoom'));
 
-  // Sync Firebase
   onValue(ref(db, '/'), (snapshot) => {
     globalData = snapshot.val() || {};
     document.getElementById('status').innerText = "● EN LIGNE";
@@ -187,11 +186,7 @@
     const stockCatSelect = document.getElementById('stockCatSelect');
     const viewMode = document.getElementById('viewMode').value;
     
-    const currentStockCat = stockCatSelect.value;
-    const currentStockProd = document.getElementById('stockProdSelect').value;
-
     parent.innerHTML = ""; 
-    // Initialisation du select catalogue avec "Choix catégorie..."
     selectCat.innerHTML = '<option value="">Choix catégorie...</option>';
     stockCatSelect.innerHTML = '<option value="">-- Catégorie --</option>';
 
@@ -214,16 +209,8 @@
         headerHtml += `</tr></thead>`;
 
         section.innerHTML = `
-            <div class="cat-title">
-                <span>☰ ${cat.nom}</span>
-                <span class="delete-icon" onclick="supprimerCat('${catID}')">✕</span>
-            </div>
-            <div class="table-container">
-                <table>
-                    ${headerHtml}
-                    <tbody id="body-${catID}"></tbody>
-                </table>
-            </div>
+            <div class="cat-title"><span>☰ ${cat.nom}</span><span class="delete-icon" onclick="supprimerCat('${catID}')">✕</span></div>
+            <div class="table-container"><table>${headerHtml}<tbody id="body-${catID}"></tbody></table></div>
         `;
 
         const tbody = section.querySelector('tbody');
@@ -243,49 +230,41 @@
 
             const tr = document.createElement('tr');
             tr.dataset.id = pID;
-            let htmlProd = `<td class="prod-name">
-                <span class="handle-prod">⋮⋮</span> ${pName}
-                <span class="delete-icon" onclick="supprimerProd('${catID}','${pID}')" style="font-size:0.8em; opacity:0.3">✕</span>
-            </td>`;
+            let htmlProd = `<td class="prod-name"><span class="handle-prod">⋮⋮</span> ${pName}</td>`;
             
             jours.forEach(j => {
                 const isHidden = (viewMode !== "semaine" && viewMode !== j) ? "hidden-col" : "";
                 const vals = (production[pID] && production[pID][j]) ? production[pID][j] : { obj: 0, stock: 0 };
-                const reste = Math.max(0, (parseInt(vals.obj)||0) - (parseInt(vals.stock)||0));
+                const obj = parseInt(vals.obj)||0;
+                const stk = parseInt(vals.stock)||0;
+                const reste = Math.max(0, obj - stk);
+                
+                // Classes dynamiques
+                const classStock = (stk === 0 && obj > 0) ? "sub-cell stock-vide" : "sub-cell";
+                const classReste = (reste > 0) ? "sub-cell reste-positif" : "sub-cell";
+
                 htmlProd += `<td class="${isHidden}">
                     <div class="cell-grid">
-                        <div class="sub-cell"><span class="label-sub">Obj</span><input type="number" class="val-obj" value="${vals.obj||0}" onchange="updateVal('${pID}','${j}','obj',this.value)"></div>
-                        <div class="sub-cell"><span class="label-sub">Stk</span><span class="val-stock">${vals.stock||0}</span></div>
-                        <div class="sub-cell"><span class="label-sub">Rst</span><span class="val-prod">${reste}</span></div>
+                        <div class="sub-cell"><span class="label-sub">Obj</span><input type="number" class="val-obj" value="${obj}" onchange="updateVal('${pID}','${j}','obj',this.value)"></div>
+                        <div class="${classStock}"><span class="label-sub">Stk</span><span class="val-stock">${stk}</span></div>
+                        <div class="${classReste}"><span class="label-sub">Rst</span><span class="val-prod">${reste}</span></div>
                     </div>
                 </td>`;
             });
-            tr.innerHTML = htmlProd;
-            tbody.appendChild(tr);
+            tr.innerHTML = htmlProd; tbody.appendChild(tr);
         });
         parent.appendChild(section);
 
-        new Sortable(tbody, {
-            handle: '.handle-prod', animation: 150,
-            onEnd: function() {
-                tbody.querySelectorAll('tr').forEach((row, i) => update(ref(db, `categories/${catID}/produits/${row.dataset.id}`), { ordre: i }));
-            }
-        });
+        new Sortable(tbody, { handle: '.handle-prod', animation: 150, onEnd: function() {
+            tbody.querySelectorAll('tr').forEach((row, i) => update(ref(db, `categories/${catID}/produits/${row.dataset.id}`), { ordre: i }));
+        }});
     });
 
-    new Sortable(parent, {
-        handle: '.cat-title', animation: 150,
-        onEnd: function() {
-            parent.querySelectorAll('.categorie-container').forEach((block, i) => update(ref(db, `categories/${block.dataset.id}`), { ordre: i }));
-        }
-    });
-
-    stockCatSelect.value = currentStockCat;
-    updateStockProdList();
-    document.getElementById('stockProdSelect').value = currentStockProd;
+    new Sortable(parent, { handle: '.cat-title', animation: 150, onEnd: function() {
+        parent.querySelectorAll('.categorie-container').forEach((block, i) => update(ref(db, `categories/${block.dataset.id}`), { ordre: i }));
+    }});
   }
 
-  // --- ACTIONS ---
   window.quickSearchProd = () => {
       const search = document.getElementById('quickSearch').value.toLowerCase();
       if (search.length < 2) return;
@@ -324,34 +303,23 @@
     });
   };
 
-  window.ajouterCategorie = () => { const n = document.getElementById('nomCat').value; if(n) { push(ref(db, 'categories'), { nom: n, ordre: 99 }); document.getElementById('nomCat').value=""; } };
+  window.ajouterCategorie = () => { const n = document.getElementById('nomCat').value; if(n) push(ref(db, 'categories'), { nom: n, ordre: 99 }); };
   window.ajouterProduit = () => { 
-      const n = document.getElementById('nomProd').value; 
-      const c = document.getElementById('selectCat').value; 
-      if(n && c) { push(ref(db, `categories/${c}/produits`), { nom: n, ordre: 99 }); document.getElementById('nomProd').value=""; }
-      else { alert("Veuillez donner un nom et choisir une catégorie valide."); }
+      const n = document.getElementById('nomProd').value; const c = document.getElementById('selectCat').value; 
+      if(n && c) push(ref(db, `categories/${c}/produits`), { nom: n, ordre: 99 });
   };
-  window.supprimerProd = (c, p) => { if(confirm("Supprimer ce produit ?")) remove(ref(db, `categories/${c}/produits/${p}`)); };
-  window.supprimerCat = (c) => { if(confirm("Supprimer toute la catégorie ?")) remove(ref(db, `categories/${c}`)); };
   window.updateVal = (p, j, t, v) => set(ref(db, `production/${p}/${j}/${t}`), v);
   window.sauverDates = () => set(ref(db, 'config/dates'), { debut: document.getElementById('dateDebut').value, fin: document.getElementById('dateFin').value });
-  
   window.toggleFiltre = () => { 
       filtreActif = !filtreActif; 
       const btn = document.getElementById('btnFiltre');
-      if(filtreActif) {
-          btn.innerHTML = "👁️ Afficher toutes les lignes";
-          btn.classList.add('btn-orange');
-      } else {
-          btn.innerHTML = "🔍 Masquer les lignes avec un reste à 0";
-          btn.classList.remove('btn-orange');
-      }
+      btn.innerHTML = filtreActif ? "👁️ Afficher toutes les lignes" : "🔍 Masquer les lignes avec un reste à 0";
+      btn.classList.toggle('btn-orange', filtreActif);
       render(globalData); 
   };
-
-  window.resetTotal = () => { if(confirm("⚠️ TOUT EFFACER ?")) remove(ref(db, '/')); };
+  window.resetTotal = () => { if(confirm("TOUT EFFACER ?")) remove(ref(db, '/')); };
   window.resetStocksUniquement = async () => {
-      if(confirm("Remettre tous les stocks à zéro ?")) {
+      if(confirm("Vider les stocks ?")) {
           const s = await get(ref(db, 'production'));
           if(s.exists()){
               let d = s.val();
@@ -361,7 +329,6 @@
       }
   };
 
-  // Init jours
   const sj = document.getElementById('stockJourSelect');
   jours.forEach(j => sj.add(new Option(j, j)));
 
@@ -370,13 +337,13 @@
     const cats = globalData.categories || {};
     const prod = globalData.production || {};
     Object.keys(cats).forEach(cID => {
-        const rows = [["Produit", "Lundi (Obj/Stk/Rst)", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"]];
+        const rows = [["Produit", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]];
         const pList = cats[cID].produits || {};
         Object.keys(pList).forEach(pID => {
             const r = [pList[pID].nom];
             jours.forEach(j => {
                 const v = (prod[pID] && prod[pID][j]) ? prod[pID][j] : {obj:0, stock:0};
-                r.push(`${v.obj||0} / ${v.stock||0} / ${Math.max(0,(v.obj||0)-(v.stock||0))}`);
+                r.push(`${v.obj||0}/${v.stock||0}/${Math.max(0,(v.obj||0)-(v.stock||0))}`);
             });
             rows.push(r);
         });
