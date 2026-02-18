@@ -3,60 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Maison Jebrane - Planning Premium</title>
+    <title>Maison Jebrane - Pilotage Production</title>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <style>
-        body { 
-            font-family: 'Playfair Display', serif; 
-            margin: 0; padding: 20px; 
-            background-color: #1a1a1a; color: #f4f4f4; 
-        }
-        .container { max-width: 1100px; margin: auto; }
+        body { font-family: 'Playfair Display', serif; margin: 0; padding: 20px; background-color: #1a1a1a; color: #f4f4f4; }
+        .container { max-width: 1400px; margin: auto; }
         
-        .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #D4AF37; padding-bottom: 20px; }
-        h2 { color: #D4AF37; margin: 0; font-size: 2.5em; text-transform: uppercase; letter-spacing: 2px; }
-        .subtitle { color: #f4f4f4; font-size: 1.1em; opacity: 0.8; margin-top: 10px; }
+        .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #D4AF37; padding-bottom: 15px; }
+        h2 { color: #D4AF37; margin: 0; font-size: 2em; text-transform: uppercase; }
         
-        .toolbar { 
-            background: #262626; padding: 15px 25px; border-radius: 12px; 
-            margin-bottom: 20px; display: flex; justify-content: space-between; 
-            align-items: center; border: 1px solid #D4AF37; flex-wrap: wrap; gap: 15px;
-        }
-        .dates-config { display: flex; gap: 15px; align-items: center; }
-        .dates-config input { background: #1a1a1a; color: #D4AF37; border: 1px solid #D4AF37; padding: 5px; border-radius: 4px; }
-
-        .actions-secondaires { display: flex; gap: 10px; }
-
-        .formulaire { 
-            background: #262626; padding: 25px; border-radius: 12px; 
-            margin-bottom: 25px; display: flex; gap: 20px; 
-            align-items: flex-end; flex-wrap: wrap; border: 1px solid #444;
-        }
-        .champ { display: flex; flex-direction: column; gap: 8px; }
-        label { font-weight: bold; font-size: 0.8em; color: #D4AF37; text-transform: uppercase; }
-        select, input { padding: 12px; background: #333; color: white; border: 1px solid #555; border-radius: 6px; }
-
-        .btn-update { 
-            background: linear-gradient(45deg, #D4AF37, #F9E586); 
-            color: #1a1a1a; border: none; padding: 12px 30px; 
-            border-radius: 6px; cursor: pointer; font-weight: bold; 
-            text-transform: uppercase; transition: 0.3s;
-        }
-        .btn-export { background: #D4AF37; color: #1a1a1a; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-size: 0.8em; font-weight: bold; }
-        .btn-reset { background: transparent; color: #ff4d4d; border: 1px solid #ff4d4d; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-size: 0.8em; font-weight: bold; }
+        .toolbar { background: #262626; padding: 15px; border-radius: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #D4AF37; flex-wrap: wrap; gap: 10px; }
         
-        button:hover { transform: scale(1.02); opacity: 0.9; }
+        .formulaire { background: #262626; padding: 20px; border-radius: 12px; margin-bottom: 20px; display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap; border: 1px solid #444; }
+        .champ { display: flex; flex-direction: column; gap: 5px; }
+        label { font-weight: bold; font-size: 0.75em; color: #D4AF37; text-transform: uppercase; }
+        select, input { padding: 10px; background: #333; color: white; border: 1px solid #555; border-radius: 6px; }
 
+        .btn-update { background: linear-gradient(45deg, #D4AF37, #F9E586); color: #1a1a1a; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; text-transform: uppercase; }
+        .btn-export { background: #D4AF37; color: #1a1a1a; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .btn-reset { background: transparent; color: #ff4d4d; border: 1px solid #ff4d4d; padding: 8px 12px; border-radius: 6px; cursor: pointer; }
+
+        /* Style spécifique du nouveau tableau */
         .table-container { overflow-x: auto; border-radius: 12px; border: 1px solid #D4AF37; }
-        table { border-collapse: collapse; width: 100%; background: #262626; }
-        th, td { border: 1px solid #3d3d3d; padding: 15px; text-align: center; }
-        th { background-color: #1a1a1a; color: #D4AF37; text-transform: uppercase; font-size: 0.9em; }
-        td:first-child { font-weight: bold; text-align: left; color: #D4AF37; background: #1a1a1a; }
+        table { border-collapse: collapse; width: 100%; background: #262626; font-size: 0.85em; }
+        th, td { border: 1px solid #3d3d3d; padding: 0; text-align: center; }
+        th { background-color: #1a1a1a; color: #D4AF37; padding: 10px; }
         
-        .valeur-positive { color: #F9E586; font-weight: bold; font-size: 1.2em; text-shadow: 0 0 5px rgba(249, 229, 134, 0.5); }
-        #status { font-size: 0.7em; padding: 5px 12px; border-radius: 20px; }
-        .online { border: 1px solid #D4AF37; color: #D4AF37; }
-        .offline { border: 1px solid #ff4d4d; color: #ff4d4d; }
+        /* Division de la cellule en 3 */
+        .cell-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; width: 100%; min-width: 120px; }
+        .sub-cell { padding: 8px 2px; border-right: 1px solid #3d3d3d; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .sub-cell:last-child { border-right: none; }
+        
+        .label-sub { font-size: 0.6em; color: #888; text-transform: uppercase; margin-bottom: 2px; }
+        .val-obj { background: #2d2d2d; color: #fff; border: none; width: 35px; text-align: center; border-bottom: 1px solid #D4AF37; font-family: inherit; }
+        .val-stock { color: #D4AF37; font-weight: bold; }
+        .val-prod { color: #F9E586; font-weight: bold; font-size: 1.1em; }
+
+        td:first-child { font-weight: bold; text-align: left; color: #D4AF37; background: #1a1a1a; padding: 10px; min-width: 150px; }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
 </head>
@@ -65,42 +48,31 @@
 <div class="container">
     <div class="header">
         <h2>Maison Jebrane</h2>
-        <p class="subtitle">Gestion de Production Haute Pâtisserie</p>
         <span id="status" class="offline">Connexion...</span>
     </div>
 
     <div class="toolbar">
         <div class="dates-config">
-            <label>Période du</label>
-            <input type="date" id="dateDebut" onchange="sauverDates()">
-            <label>au</label>
-            <input type="date" id="dateFin" onchange="sauverDates()">
+            <input type="date" id="dateDebut" onchange="sauverDates()"> au <input type="date" id="dateFin" onchange="sauverDates()">
         </div>
-        <div class="actions-secondaires">
-            <button class="btn-export" onclick="exporterExcel()">📊 Exporter en Excel (.xlsx)</button>
-            <button class="btn-reset" onclick="reinitialiserTableau()">∅ Remettre à zéro</button>
+        <div>
+            <button class="btn-export" onclick="exporterExcel()">📊 Excel</button>
+            <button class="btn-reset" onclick="reinitialiserTableau()">∅ Effacer</button>
         </div>
     </div>
 
     <div class="formulaire">
-        <div class="champ">
-            <label>Gâteau</label>
-            <select id="selectGateau"></select>
-        </div>
-        <div class="champ">
-            <label>Jour</label>
-            <select id="selectJour"></select>
-        </div>
-        <div class="champ">
-            <label>Quantité</label>
-            <input type="number" id="inputQuantite" value="0" min="0">
-        </div>
-        <button class="btn-update" onclick="envoyerAFirebase()">Mettre à jour</button>
+        <div class="champ"><label>Gâteau</label><select id="selectGateau"></select></div>
+        <div class="champ"><label>Jour</label><select id="selectJour"></select></div>
+        <div class="champ"><label>Stock réel</label><input type="number" id="inputQuantite" value="0"></div>
+        <button class="btn-update" onclick="envoyerAFirebase()">Mise à jour stock</button>
     </div>
 
     <div class="table-container">
         <table id="tableauProduction">
-            <thead><tr id="enteteTableau"><th>Collections</th></tr></thead>
+            <thead>
+                <tr id="enteteTableau"><th>Produits</th></tr>
+            </thead>
             <tbody id="corpsTableau"></tbody>
         </table>
     </div>
@@ -129,63 +101,37 @@
 
   const selectG = document.getElementById('selectGateau');
   const selectJ = document.getElementById('selectJour');
-  const entete = document.getElementById('enteteTableau');
   const corps = document.getElementById('corpsTableau');
 
   gateaux.forEach(g => selectG.add(new Option(g, g)));
   jours.forEach(j => {
       selectJ.add(new Option(j, j));
-      let th = document.createElement('th'); th.innerText = j; entete.appendChild(th);
+      let th = document.createElement('th'); th.innerText = j;
+      document.getElementById('enteteTableau').appendChild(th);
   });
 
-  window.sauverDates = function() {
-    set(ref(db, 'config/dates'), { 
-        debut: document.getElementById('dateDebut').value, 
-        fin: document.getElementById('dateFin').value 
-    });
+  // Sauvegarde des objectifs (directement quand on tape dans le tableau)
+  window.sauverObjectif = function(gateau, jour, valeur) {
+    set(ref(db, `production/${gateau}/${jour}/objectif`), valeur);
   };
 
   window.envoyerAFirebase = function() {
-    set(ref(db, 'commandes/' + selectG.value + '/' + selectJ.value), document.getElementById('inputQuantite').value);
+    set(ref(db, `production/${selectG.value}/${selectJ.value}/stock`), document.getElementById('inputQuantite').value);
+  };
+
+  window.sauverDates = function() {
+    set(ref(db, 'config/dates'), { debut: document.getElementById('dateDebut').value, fin: document.getElementById('dateFin').value });
   };
 
   window.reinitialiserTableau = function() {
-    if(confirm("Confirmez-vous la réinitialisation complète de la semaine ?")) {
-        remove(ref(db, 'commandes'));
-    }
+    if(confirm("Effacer toutes les données (Objectifs et Stocks) ?")) remove(ref(db, 'production'));
   };
 
-  // NOUVELLE FONCTION D'EXPORTATION EXCEL (XLSX)
-  window.exporterExcel = function() {
-    const table = document.getElementById("tableauProduction");
-    
-    // Création d'un classeur vide
-    const wb = XLSX.utils.book_new();
-    
-    // Conversion du tableau HTML en feuille de calcul
-    const ws = XLSX.utils.table_to_sheet(table);
-    
-    // Ajout de la feuille au classeur
-    XLSX.utils.book_append_sheet(wb, ws, "Production Semaine");
-    
-    // Génération du nom de fichier
-    const dateD = document.getElementById('dateDebut').value || "debut";
-    const dateF = document.getElementById('dateFin').value || "fin";
-    const fileName = `Production_Maison_Jebrane_${dateD}_au_${dateF}.xlsx`;
-    
-    // Téléchargement du fichier
-    XLSX.writeFile(wb, fileName);
-  };
-
-  onValue(ref(db, 'config/dates'), (snapshot) => {
-    const dates = snapshot.val();
-    if(dates) {
-        document.getElementById('dateDebut').value = dates.debut || "";
-        document.getElementById('dateFin').value = dates.fin || "";
-    }
+  onValue(ref(db, 'config/dates'), s => {
+    const d = s.val(); if(d) { document.getElementById('dateDebut').value = d.debut; document.getElementById('dateFin').value = d.fin; }
   });
 
-  onValue(ref(db, 'commandes'), (snapshot) => {
+  onValue(ref(db, 'production'), (snapshot) => {
     const data = snapshot.val() || {};
     document.getElementById('status').innerText = "● SYSTÈME CONNECTÉ";
     document.getElementById('status').className = "online";
@@ -198,14 +144,34 @@
         let tr = document.createElement('tr');
         tr.innerHTML = `<td>${g}</td>`;
         jours.forEach(j => {
-            let val = (data[g] && data[g][j]) ? data[g][j] : 0;
-            let style = val > 0 ? 'class="valeur-positive"' : '';
-            tr.innerHTML += `<td ${style}>${val}</td>`;
+            const node = (data[g] && data[g][j]) ? data[g][j] : { objectif: 0, stock: 0 };
+            const objectif = parseInt(node.objectif) || 0;
+            const stock = parseInt(node.stock) || 0;
+            const aFaire = Math.max(0, objectif - stock);
+
+            tr.innerHTML += `
+                <td>
+                    <div class="cell-grid">
+                        <div class="sub-cell"><span class="label-sub">Obj</span>
+                            <input type="number" class="val-obj" value="${objectif}" onchange="sauverObjectif('${g}', '${j}', this.value)">
+                        </div>
+                        <div class="sub-cell"><span class="label-sub">Stock</span><span class="val-stock">${stock}</span></div>
+                        <div class="sub-cell"><span class="label-sub">Reste</span><span class="val-prod">${aFaire}</span></div>
+                    </div>
+                </td>`;
         });
         corps.appendChild(tr);
     });
   }
-</script>
 
+  window.exporterExcel = function() {
+    const wb = XLSX.utils.book_new();
+    const table = document.getElementById("tableauProduction");
+    const ws = XLSX.utils.table_to_sheet(table);
+    XLSX.utils.book_append_sheet(wb, ws, "Production");
+    XLSX.writeFile(wb, "Maison_Jebrane_Production.xlsx");
+  };
+</script>
 </body>
 </html>
+
