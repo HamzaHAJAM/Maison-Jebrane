@@ -134,6 +134,11 @@
   let globalData = {};
   let filtreActif = false;
 
+  // Initialisation des jours pour le menu Stock
+  const sj = document.getElementById('stockJourSelect');
+  sj.innerHTML = '<option value="">-- Jour --</option>';
+  jours.forEach(j => sj.add(new Option(j, j)));
+
   onValue(ref(db, '/'), (snapshot) => {
     globalData = snapshot.val() || {};
     document.getElementById('status').innerText = "● EN LIGNE";
@@ -165,22 +170,19 @@
     const viewMode = document.getElementById('viewMode').value;
     const catFiltre = filterCatView.value;
     
-    // On garde en mémoire la catégorie sélectionnée avant de vider le select
     const currentCatSelection = filterCatView.value;
+    const currentStockProd = stockProdSelect.value;
 
     parent.innerHTML = ""; 
     selectCat.innerHTML = ""; 
-    stockProdSelect.innerHTML = "";
+    stockProdSelect.innerHTML = '<option value="">-- Choisir Produit --</option>';
     filterCatView.innerHTML = '<option value="toutes">📂 Toutes les catégories</option>';
 
     Object.keys(containers).forEach(catID => {
         const catName = containers[catID].nom;
-        
-        // Remplissage des menus de sélection
         selectCat.add(new Option(catName, catID));
         filterCatView.add(new Option(catName, catID));
 
-        // --- FILTRE PAR CATÉGORIE ---
         if (catFiltre !== "toutes" && catFiltre !== catID) return;
 
         const section = document.createElement('div');
@@ -257,82 +259,63 @@
             });
         }
     });
-    // Restaurer la sélection du filtre catégorie pour éviter qu'il revienne à "toutes" à chaque clic
     filterCatView.value = currentCatSelection;
+    stockProdSelect.value = currentStockProd;
   }
 
-  // --- LOGIQUE FIREBASE & EXPORT ---
+  window.validerStock = () => {
+    const prodVal = document.getElementById('stockProdSelect').value;
+    const jourVal = document.getElementById('stockJourSelect').value;
+    const stockVal = document.getElementById('stockValeur').value;
+
+    if(!prodVal || !jourVal) {
+        alert("⚠️ Veuillez sélectionner un produit ET un jour.");
+        return;
+    }
+
+    const combo = prodVal.split('/');
+    set(ref(db, `production/${combo[1]}/${jourVal}/stock`), stockVal).then(() => {
+        document.getElementById('stockValeur').value = 0;
+        document.getElementById('stockProdSelect').value = ""; 
+    });
+  };
+
   window.exporterExcel = () => {
     const wb = XLSX.utils.book_new();
     const categories = globalData.categories || {};
     const production = globalData.production || {};
     const dDebut = document.getElementById('dateDebut').value || "Début";
     const dFin = document.getElementById('dateFin').value || "Fin";
-
     Object.keys(categories).forEach(catID => {
       const catName = categories[catID].nom;
       const produits = categories[catID].produits || {};
-      const rows = []; const merges = [];
-      const row1 = [""];
-      jours.forEach((j, index) => {
-        row1.push(j, "", "");
-        const startCol = 1 + (index * 3);
-        merges.push({ s: { r: 0, c: startCol }, e: { r: 0, c: startCol + 2 } });
+      const rows = [[""], ["Produits"]]; const merges = [];
+      jours.forEach((j, i) => { rows[0].push(j, "", ""); rows[1].push("Obj", "Stk", "Rst"); merges.push({ s: { r: 0, c: 1 + (i * 3) }, e: { r: 0, c: 1 + (i * 3) + 2 } }); });
+      Object.keys(produits).sort((a,b) => (produits[a].ordre || 0) - (produits[b].ordre || 0)).forEach(pID => {
+        const r = [produits[pID].nom];
+        jours.forEach(j => { const v = (production[pID] && production[pID][j]) ? production[pID][j] : { obj: 0, stock: 0 }; r.push(v.obj||0, v.stock||0, Math.max(0, (v.obj||0)-(v.stock||0))); });
+        rows.push(r);
       });
-      rows.push(row1);
-      const row2 = ["Produits"];
-      jours.forEach(() => { row2.push("Obj", "Stk", "Rst"); });
-      rows.push(row2);
-      const sortedProdKeys = Object.keys(produits).sort((a,b) => (produits[a].ordre || 0) - (produits[b].ordre || 0));
-      sortedProdKeys.forEach(pID => {
-        const row = [produits[pID].nom];
-        jours.forEach(j => {
-          const vals = (production[pID] && production[pID][j]) ? production[pID][j] : { obj: 0, stock: 0 };
-          const obj = parseInt(vals.obj) || 0;
-          const stk = parseInt(vals.stock) || 0;
-          row.push(obj, stk, Math.max(0, obj - stk));
-        });
-        rows.push(row);
-      });
-      const ws = XLSX.utils.aoa_to_sheet(rows);
-      ws['!merges'] = merges;
+      const ws = XLSX.utils.aoa_to_sheet(rows); ws['!merges'] = merges;
       XLSX.utils.book_append_sheet(wb, ws, catName.substring(0, 31));
     });
     XLSX.writeFile(wb, `Maison_Jebrane_Villeparisis_${dDebut}_au_${dFin}.xlsx`);
   };
-
-  window.ajouterCategorie = () => {
-    const nom = document.getElementById('nomCat').value;
-    if(nom) { push(ref(db, 'categories'), { nom: nom }); document.getElementById('nomCat').value = ""; }
-  };
-  window.ajouterProduit = () => {
-    const nom = document.getElementById('nomProd').value;
-    const catID = document.getElementById('selectCat').value;
-    if(nom && catID) { push(ref(db, `categories/${catID}/produits`), { nom: nom, ordre: 99 }); document.getElementById('nomProd').value = ""; }
-  };
-  window.updateVal = (pID, jour, type, val) => set(ref(db, `production/${pID}/${jour}/${type}`), val);
-  window.validerStock = () => {
-    const combo = document.getElementById('stockProdSelect').value.split('/');
-    if(combo.length < 2) return;
-    set(ref(db, `production/${combo[1]}/${document.getElementById('stockJourSelect').value}/stock`), document.getElementById('stockValeur').value);
-  };
-  window.supprimerProd = (catID, pID) => { if(confirm("Supprimer ?")) remove(ref(db, `categories/${catID}/produits/${pID}`)); };
-  window.supprimerCat = (catID) => { if(confirm("Supprimer catégorie ?")) remove(ref(db, `categories/${catID}`)); };
+  window.ajouterCategorie = () => { const n = document.getElementById('nomCat').value; if(n) { push(ref(db, 'categories'), { nom: n }); document.getElementById('nomCat').value = ""; } };
+  window.ajouterProduit = () => { const n = document.getElementById('nomProd').value; const c = document.getElementById('selectCat').value; if(n && c) { push(ref(db, `categories/${c}/produits`), { nom: n, ordre: 99 }); document.getElementById('nomProd').value = ""; } };
+  window.updateVal = (pID, j, t, v) => set(ref(db, `production/${pID}/${j}/${t}`), v);
+  window.supprimerProd = (c, p) => { if(confirm("Supprimer ?")) remove(ref(db, `categories/${c}/produits/${p}`)); };
+  window.supprimerCat = (c) => { if(confirm("Supprimer catégorie ?")) remove(ref(db, `categories/${c}`)); };
   window.sauverDates = () => set(ref(db, 'config/dates'), { debut: document.getElementById('dateDebut').value, fin: document.getElementById('dateFin').value });
-  window.resetTotal = () => { if(confirm("⚠️ TOUT EFFACER DÉFINITIVEMENT ?")) remove(ref(db, '/')); };
+  window.resetTotal = () => { if(confirm("⚠️ TOUT EFFACER ?")) remove(ref(db, '/')); };
   window.resetStocksUniquement = async () => {
-    const prodRef = ref(db, 'production');
-    const snap = await get(prodRef);
+    const snap = await get(ref(db, 'production'));
     if (snap.exists()) {
         const prod = snap.val();
         Object.keys(prod).forEach(pID => { jours.forEach(j => { if (prod[pID][j]) prod[pID][j].stock = 0; }); });
-        await set(prodRef, prod);
+        await set(ref(db, 'production'), prod);
     }
   };
-
-  jours.forEach(j => {
-      document.getElementById('stockJourSelect').add(new Option(j, j));
-  });
 </script>
 </body>
 </html>
