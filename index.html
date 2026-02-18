@@ -122,7 +122,7 @@
                     <option value="Vendredi">Vendredi</option><option value="Samedi">Samedi</option>
                     <option value="Dimanche">Dimanche</option>
                 </select>
-                <button class="btn btn-outline" id="btnFiltre" onclick="toggleFiltre()">🔍 Masquer les terminés</button>
+                <button class="btn btn-outline" id="btnFiltre" onclick="toggleFiltre()">🔍 Masquer les lignes avec un reste à 0</button>
             </div>
         </div>
     </div>
@@ -191,7 +191,8 @@
     const currentStockProd = document.getElementById('stockProdSelect').value;
 
     parent.innerHTML = ""; 
-    selectCat.innerHTML = "";
+    // Initialisation du select catalogue avec "Choix catégorie..."
+    selectCat.innerHTML = '<option value="">Choix catégorie...</option>';
     stockCatSelect.innerHTML = '<option value="">-- Catégorie --</option>';
 
     const sortedCatKeys = Object.keys(containers).sort((a,b) => (containers[a].ordre || 0) - (containers[b].ordre || 0));
@@ -215,7 +216,7 @@
         section.innerHTML = `
             <div class="cat-title">
                 <span>☰ ${cat.nom}</span>
-                <span class="delete-icon" onclick="supprimerCat('${catID}')" title="Supprimer catégorie">✕</span>
+                <span class="delete-icon" onclick="supprimerCat('${catID}')">✕</span>
             </div>
             <div class="table-container">
                 <table>
@@ -328,13 +329,26 @@
       const n = document.getElementById('nomProd').value; 
       const c = document.getElementById('selectCat').value; 
       if(n && c) { push(ref(db, `categories/${c}/produits`), { nom: n, ordre: 99 }); document.getElementById('nomProd').value=""; }
-      else { alert("Donnez un nom et choisissez une catégorie"); }
+      else { alert("Veuillez donner un nom et choisir une catégorie valide."); }
   };
   window.supprimerProd = (c, p) => { if(confirm("Supprimer ce produit ?")) remove(ref(db, `categories/${c}/produits/${p}`)); };
   window.supprimerCat = (c) => { if(confirm("Supprimer toute la catégorie ?")) remove(ref(db, `categories/${c}`)); };
   window.updateVal = (p, j, t, v) => set(ref(db, `production/${p}/${j}/${t}`), v);
   window.sauverDates = () => set(ref(db, 'config/dates'), { debut: document.getElementById('dateDebut').value, fin: document.getElementById('dateFin').value });
-  window.toggleFiltre = () => { filtreActif = !filtreActif; render(globalData); };
+  
+  window.toggleFiltre = () => { 
+      filtreActif = !filtreActif; 
+      const btn = document.getElementById('btnFiltre');
+      if(filtreActif) {
+          btn.innerHTML = "👁️ Afficher toutes les lignes";
+          btn.classList.add('btn-orange');
+      } else {
+          btn.innerHTML = "🔍 Masquer les lignes avec un reste à 0";
+          btn.classList.remove('btn-orange');
+      }
+      render(globalData); 
+  };
+
   window.resetTotal = () => { if(confirm("⚠️ TOUT EFFACER ?")) remove(ref(db, '/')); };
   window.resetStocksUniquement = async () => {
       if(confirm("Remettre tous les stocks à zéro ?")) {
