@@ -155,7 +155,20 @@
   });
 
   window.relancerRender = () => render(globalData);
-  window.toggleFiltre = () => { filtreActif = !filtreActif; document.getElementById('btnFiltre').classList.toggle('btn-orange', filtreActif); render(globalData); };
+
+  window.toggleFiltre = () => { 
+    filtreActif = !filtreActif; 
+    const btn = document.getElementById('btnFiltre');
+    if (filtreActif) {
+        btn.innerHTML = "👁️ Afficher tout";
+        btn.classList.add('btn-orange');
+    } else {
+        btn.innerHTML = '🔍 Masquer "Reste à 0"';
+        btn.classList.remove('btn-orange');
+    }
+    render(globalData); 
+  };
+
   window.toggleFait = (pID, jour, actuel) => set(ref(db, `production/${pID}/${jour}/fait`), !actuel);
 
   function render(data) {
