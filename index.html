@@ -334,6 +334,7 @@
   const sj = document.getElementById('stockJourSelect');
   jours.forEach(j => sj.add(new Option(j, j)));
 
+  // NOUVELLE EXPORTATION AVEC CELLULES FUSIONNÉES (LOGIQUEMENT)
   window.exporterExcel = () => {
     const wb = XLSX.utils.book_new();
     const cats = globalData.categories || {};
@@ -342,9 +343,19 @@
     const dFin = document.getElementById('dateFin').value || "SansDate";
 
     Object.keys(cats).forEach(cID => {
-        const header = ["Produit"];
-        jours.forEach(j => { header.push(`${j} (Obj)`, `${j} (Stk)`, `${j} (Rst)`); });
-        const rows = [header];
+        // Ligne 1 : Les noms des jours (B1, E1, H1...)
+        const row1 = [""]; 
+        jours.forEach(j => {
+            row1.push(j, "", ""); // On met le nom du jour, puis 2 vides pour les colonnes Stk et Rst
+        });
+
+        // Ligne 2 : Sous-titres (Obj, Stk, Rst)
+        const row2 = ["Produit"];
+        jours.forEach(() => {
+            row2.push("Obj", "Stk", "Rst");
+        });
+
+        const rowsData = [row1, row2];
         const pList = cats[cID].produits || {};
         const sortedPKeys = Object.keys(pList).sort((a,b) => (pList[a].ordre||0) - (pList[b].ordre||0));
 
@@ -356,9 +367,19 @@
                 const s = parseInt(vals.stock) || 0;
                 row.push(o, s, Math.max(0, o - s));
             });
-            rows.push(row);
+            rowsData.push(row);
         });
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), cats[cID].nom.substring(0,30));
+
+        const ws = XLSX.utils.aoa_to_sheet(rowsData);
+        
+        // Optionnel : Ajout de la fusion des cellules pour les jours si supporté (B1:D1, etc.)
+        ws['!merges'] = [];
+        for(let i=0; i<7; i++) {
+            const startCol = 1 + (i*3);
+            ws['!merges'].push({ s: { r: 0, c: startCol }, e: { r: 0, c: startCol + 2 } });
+        }
+
+        XLSX.utils.book_append_sheet(wb, ws, cats[cID].nom.substring(0,30));
     });
     XLSX.writeFile(wb, `Rapport_Villeparisis_${dDebut}_au_${dFin}.xlsx`);
   };
