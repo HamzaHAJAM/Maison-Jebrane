@@ -42,17 +42,14 @@
         .sub-cell { background: #333; border-radius: 4px; display: flex; flex-direction: column; padding: 4px; transition: 0.3s; }
         .label-sub { font-size: 0.55em; color: #aaa; margin-bottom: 2px; }
         
-        /* ALERTES COULEURS */
-        .stock-vide { background-color: #d35400 !important; color: white !important; } /* Orange */
-        .reste-positif { background-color: #c0392b !important; color: white !important; } /* Rouge */
+        .stock-vide { background-color: #d35400 !important; color: white !important; }
+        .reste-positif { background-color: #c0392b !important; color: white !important; }
         
         .val-obj { background: transparent; color: #fff; border: none; width: 100%; text-align: center; font-weight: bold; font-size: 1.1em; }
         .val-stock { font-weight: bold; font-size: 1.1em; }
         .val-prod { font-weight: bold; font-size: 1.2em; }
         
         body.zoom-large { --cell-padding: 12px; --font-size-base: 1.1em; }
-        body.zoom-large .sub-cell { padding: 8px; }
-
         #status { font-size: 0.6em; padding: 4px 10px; border-radius: 20px; border: 1px solid #D4AF37; color: #D4AF37; }
         .delete-icon { color: #ff4d4d; cursor: pointer; margin-left: 10px; font-weight: bold; }
         .hidden-col { display: none; }
@@ -74,8 +71,8 @@
                     <input type="date" id="dateDebut" onchange="sauverDates()" style="flex:1;">
                     <input type="date" id="dateFin" onchange="sauverDates()" style="flex:1;">
                 </div>
-                <button class="btn btn-gold" onclick="exporterExcel()">📊 Télécharger Rapport Excel</button>
-                <button class="btn btn-orange" onclick="resetStocksUniquement()">🔄 Vider les stocks de la semaine</button>
+                <button class="btn btn-gold" onclick="exporterExcel()">📊 Rapport Excel</button>
+                <button class="btn btn-orange" onclick="resetStocksUniquement()">🔄 Vider les stocks</button>
             </div>
         </div>
 
@@ -83,11 +80,11 @@
             <h3>2. Gestion Catalogue</h3>
             <div class="form-row">
                 <div style="display:flex; gap:5px;">
-                    <input type="text" id="nomCat" placeholder="Ex: Trompe l'oeil..." style="flex:1;">
+                    <input type="text" id="nomCat" placeholder="Nouvelle catégorie..." style="flex:1;">
                     <button class="btn btn-outline" onclick="ajouterCategorie()">+</button>
                 </div>
                 <div style="display:flex; gap:5px;">
-                    <input type="text" id="nomProd" placeholder="Ex: Pistache..." style="flex:1;">
+                    <input type="text" id="nomProd" placeholder="Nouveau produit..." style="flex:1;">
                     <select id="selectCat" style="flex:1;"></select>
                     <button class="btn btn-gold" onclick="ajouterProduit()">+</button>
                 </div>
@@ -97,13 +94,15 @@
         <div class="box">
             <h3>3. Mise à jour Stock</h3>
             <div class="form-row">
-                <input type="text" id="quickSearch" placeholder="🔍 Recherche rapide produit..." oninput="quickSearchProd()">
+                <input type="text" id="quickSearch" placeholder="🔍 Recherche produit..." oninput="quickSearchProd()">
                 <div style="display:flex; gap:5px;">
                     <select id="stockCatSelect" onchange="updateStockProdList()" style="flex:1;"></select>
                     <select id="stockProdSelect" style="flex:2;"></select>
                 </div>
                 <div style="display:flex; gap:5px;">
-                    <select id="stockJourSelect" style="flex:1;"></select>
+                    <select id="stockJourSelect" style="flex:1;">
+                        <option value="">-- Jour --</option>
+                    </select>
                     <input type="number" id="stockValeur" value="0" style="width:70px;">
                     <button class="btn btn-gold" onclick="validerStock()">Valider</button>
                 </div>
@@ -117,6 +116,9 @@
                     <button class="btn btn-outline" onclick="changeZoom('normal')" style="flex:1;">Normal</button>
                     <button class="btn btn-outline" onclick="changeZoom('large')" style="flex:1;">Large</button>
                 </div>
+                <select id="filterCategory" onchange="relancerRender()">
+                    <option value="all">📁 Toutes les catégories</option>
+                </select>
                 <select id="viewMode" onchange="relancerRender()">
                     <option value="semaine">📅 Semaine complète</option>
                     <option value="Lundi">Lundi</option><option value="Mardi">Mardi</option>
@@ -124,15 +126,14 @@
                     <option value="Vendredi">Vendredi</option><option value="Samedi">Samedi</option>
                     <option value="Dimanche">Dimanche</option>
                 </select>
-                <button class="btn btn-outline" id="btnFiltre" onclick="toggleFiltre()">🔍 Masquer les lignes avec un reste à 0</button>
+                <button class="btn btn-outline" id="btnFiltre" onclick="toggleFiltre()">🔍 Masquer "Reste à 0"</button>
             </div>
         </div>
     </div>
 
     <div id="listeCategories"></div>
-    
     <div style="margin-top: 50px; padding: 20px; text-align: center;">
-        <button class="btn btn-danger" onclick="resetTotal()">⚠️ RÉINITIALISATION COMPLÈTE</button>
+        <button class="btn btn-danger" onclick="resetTotal()">⚠️ RÉINITIALISATION COMPLÈTE VILLEPARISIS</button>
     </div>
 </div>
 
@@ -156,27 +157,17 @@
   const jours = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
   let globalData = {};
   let filtreActif = false;
-  let wakeLock = null;
 
-  const requestWakeLock = async () => {
-    try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
-  };
-  document.addEventListener('click', () => { if(!wakeLock) requestWakeLock(); }, { once: true });
-
-  window.changeZoom = (l) => { document.body.className = `zoom-${l}`; localStorage.setItem('mj-zoom', l); };
-  if(localStorage.getItem('mj-zoom')) changeZoom(localStorage.getItem('mj-zoom'));
+  window.changeZoom = (l) => { document.body.className = `zoom-${l}`; localStorage.setItem('mj-zoom-ville', l); };
+  if(localStorage.getItem('mj-zoom-ville')) changeZoom(localStorage.getItem('mj-zoom-ville'));
 
   onValue(ref(db, '/'), (snapshot) => {
     globalData = snapshot.val() || {};
     document.getElementById('status').innerText = "● EN LIGNE";
-    if(globalData.config && globalData.config.dates) {
-        document.getElementById('dateDebut').value = globalData.config.dates.debut || "";
-        document.getElementById('dateFin').value = globalData.config.dates.fin || "";
-    }
     render(globalData);
   });
 
-  window.relancerRender = () => { render(globalData); };
+  window.relancerRender = () => render(globalData);
 
   function render(data) {
     const containers = data.categories || {};
@@ -184,11 +175,15 @@
     const parent = document.getElementById('listeCategories');
     const selectCat = document.getElementById('selectCat');
     const stockCatSelect = document.getElementById('stockCatSelect');
+    const filterCatDropdown = document.getElementById('filterCategory');
     const viewMode = document.getElementById('viewMode').value;
+    const catToFilter = filterCatDropdown.value;
     
     parent.innerHTML = ""; 
     selectCat.innerHTML = '<option value="">Choix catégorie...</option>';
     stockCatSelect.innerHTML = '<option value="">-- Catégorie --</option>';
+    const currentFilter = filterCatDropdown.value;
+    filterCatDropdown.innerHTML = '<option value="all">📁 Toutes les catégories</option>';
 
     const sortedCatKeys = Object.keys(containers).sort((a,b) => (containers[a].ordre || 0) - (containers[b].ordre || 0));
 
@@ -196,6 +191,9 @@
         const cat = containers[catID];
         selectCat.add(new Option(cat.nom, catID));
         stockCatSelect.add(new Option(cat.nom, catID));
+        filterCatDropdown.add(new Option(cat.nom, catID));
+
+        if(catToFilter !== "all" && catToFilter !== catID) return;
 
         const section = document.createElement('div');
         section.className = "categorie-container";
@@ -239,7 +237,6 @@
                 const stk = parseInt(vals.stock)||0;
                 const reste = Math.max(0, obj - stk);
                 
-                // Classes dynamiques
                 const classStock = (stk === 0 && obj > 0) ? "sub-cell stock-vide" : "sub-cell";
                 const classReste = (reste > 0) ? "sub-cell reste-positif" : "sub-cell";
 
@@ -259,7 +256,8 @@
             tbody.querySelectorAll('tr').forEach((row, i) => update(ref(db, `categories/${catID}/produits/${row.dataset.id}`), { ordre: i }));
         }});
     });
-
+    
+    filterCatDropdown.value = currentFilter;
     new Sortable(parent, { handle: '.cat-title', animation: 150, onEnd: function() {
         parent.querySelectorAll('.categorie-container').forEach((block, i) => update(ref(db, `categories/${block.dataset.id}`), { ordre: i }));
     }});
@@ -293,31 +291,33 @@
 
   window.validerStock = () => {
     const pVal = document.getElementById('stockProdSelect').value;
-    const jVal = document.getElementById('stockJourSelect').value || jours[new Date().getDay() === 0 ? 6 : new Date().getDay()-1];
+    const jVal = document.getElementById('stockJourSelect').value;
     const sVal = document.getElementById('stockValeur').value;
-    if(!pVal) return alert("Choisissez un produit");
+    
+    if(!jVal) return alert("⚠️ Attention : Tu n'as pas sélectionné de JOUR !");
+    if(!pVal) return alert("⚠️ Choisis un produit");
+    
     const [cID, pID] = pVal.split('/');
     set(ref(db, `production/${pID}/${jVal}/stock`), sVal).then(() => {
         document.getElementById('stockValeur').value = 0;
-        document.getElementById('quickSearch').value = "";
+        document.getElementById('stockJourSelect').value = "";
     });
   };
 
-  window.ajouterCategorie = () => { const n = document.getElementById('nomCat').value; if(n) push(ref(db, 'categories'), { nom: n, ordre: 99 }); };
+  window.ajouterCategorie = () => { const n = document.getElementById('nomCat').value; if(n) push(ref(db, 'categories'), { nom: n, ordre: 99 }); document.getElementById('nomCat').value=""; };
   window.ajouterProduit = () => { 
       const n = document.getElementById('nomProd').value; const c = document.getElementById('selectCat').value; 
-      if(n && c) push(ref(db, `categories/${c}/produits`), { nom: n, ordre: 99 });
+      if(n && c) { push(ref(db, `categories/${c}/produits`), { nom: n, ordre: 99 }); document.getElementById('nomProd').value=""; }
   };
   window.updateVal = (p, j, t, v) => set(ref(db, `production/${p}/${j}/${t}`), v);
   window.sauverDates = () => set(ref(db, 'config/dates'), { debut: document.getElementById('dateDebut').value, fin: document.getElementById('dateFin').value });
   window.toggleFiltre = () => { 
       filtreActif = !filtreActif; 
-      const btn = document.getElementById('btnFiltre');
-      btn.innerHTML = filtreActif ? "👁️ Afficher toutes les lignes" : "🔍 Masquer les lignes avec un reste à 0";
-      btn.classList.toggle('btn-orange', filtreActif);
+      document.getElementById('btnFiltre').classList.toggle('btn-orange', filtreActif);
       render(globalData); 
   };
-  window.resetTotal = () => { if(confirm("TOUT EFFACER ?")) remove(ref(db, '/')); };
+  window.supprimerCat = (c) => { if(confirm("Supprimer ?")) remove(ref(db, `categories/${c}`)); };
+  window.resetTotal = () => { if(confirm("RESET TOTAL VILLEPARISIS ?")) remove(ref(db, '/')); };
   window.resetStocksUniquement = async () => {
       if(confirm("Vider les stocks ?")) {
           const s = await get(ref(db, 'production'));
