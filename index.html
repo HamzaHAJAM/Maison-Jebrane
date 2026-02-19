@@ -9,9 +9,29 @@
     <style>
         :root { --cell-padding: 6px; --font-size-base: 0.85em; }
         body { font-family: 'Playfair Display', serif; margin: 0; padding: 20px; background-color: #1a1a1a; color: #f4f4f4; }
-        .container { max-width: 1600px; margin: auto; }
         
-        /* Header avec Logo */
+        /* --- ÉCRAN DE CONNEXION --- */
+        #login-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #1a1a1a; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; z-index: 9999;
+        }
+        .login-box { 
+            background: #262626; padding: 40px; border-radius: 15px; 
+            border: 1px solid #D4AF37; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .login-box img { width: 120px; margin-bottom: 10px; }
+        .login-box h1 { color: #D4AF37; margin: 0 0 20px 0; text-transform: uppercase; letter-spacing: 4px; font-size: 1.8em; }
+        .login-box input { 
+            display: block; width: 220px; margin: 20px auto; padding: 15px;
+            font-size: 1.2em; text-align: center; border-radius: 8px; border: 1px solid #555;
+            background: #333; color: white;
+        }
+        
+        /* --- INTERFACE PRINCIPALE --- */
+        #main-content { display: none; } /* Caché par défaut */
+        
+        .container { max-width: 1600px; margin: auto; }
         .header { display: flex; align-items: center; justify-content: center; gap: 25px; margin-bottom: 20px; border-bottom: 2px solid #D4AF37; padding-bottom: 15px; }
         .logo { width: 80px; height: auto; object-fit: contain; }
         h2 { color: #D4AF37; margin: 0; text-transform: uppercase; letter-spacing: 2px; }
@@ -56,90 +76,120 @@
         .delete-icon { color: #ff4d4d; cursor: pointer; margin-left: 10px; font-weight: bold; }
         .hidden-col { display: none; }
         .highlight-search { background-color: #555 !important; }
-
         .footer-actions { text-align: center; margin-top: 40px; padding: 20px; border-top: 1px solid #444; }
     </style>
 </head>
 <body onclick="activerWakeLock()">
 
-<div class="container">
-    <div class="header">
-        <img src="logo.png" alt="Logo Maison Jebrane" class="logo">
-        <h2>Maison Jebrane Villeparisis <span id="status">Connexion...</span></h2>
+<div id="login-screen">
+    <div class="login-box">
+        <img src="logo.png" alt="Logo Maison Jebrane">
+        <h1>VILLEPARISIS</h1>
+        <h2 style="font-size: 1em; color: #aaa; letter-spacing: 1px;">Accès Sécurisé</h2>
+        <input type="password" id="passInput" placeholder="Code d'accès..." autofocus>
+        <button class="btn btn-gold" onclick="checkLogin()" style="width: 100%;">Entrer</button>
+        <p id="error-msg" style="color: #ff4d4d; margin-top: 15px; display: none;">Code incorrect</p>
     </div>
+</div>
 
-    <div class="admin-panel">
-        <div class="box">
-            <h3>1. Période & Rapports</h3>
-            <div class="form-row">
-                <div style="display:flex; gap:5px;">
-                    <input type="date" id="dateDebut" onchange="sauverDates()" style="flex:1;">
-                    <input type="date" id="dateFin" onchange="sauverDates()" style="flex:1;">
+<div id="main-content">
+    <div class="container">
+        <div class="header">
+            <img src="logo.png" alt="Logo" class="logo">
+            <h2>Maison Jebrane Villeparisis <span id="status">Connexion...</span></h2>
+        </div>
+
+        <div class="admin-panel">
+            <div class="box">
+                <h3>1. Période & Rapports</h3>
+                <div class="form-row">
+                    <div style="display:flex; gap:5px;">
+                        <input type="date" id="dateDebut" onchange="sauverDates()" style="flex:1;">
+                        <input type="date" id="dateFin" onchange="sauverDates()" style="flex:1;">
+                    </div>
+                    <button class="btn btn-gold" onclick="exporterExcel()">📊 Rapport Excel</button>
+                    <button class="btn btn-orange" onclick="resetStocksUniquement()">🔄 Vider les stocks</button>
                 </div>
-                <button class="btn btn-gold" onclick="exporterExcel()">📊 Rapport Excel</button>
-                <button class="btn btn-orange" onclick="resetStocksUniquement()">🔄 Vider les stocks</button>
+            </div>
+
+            <div class="box">
+                <h3>2. Gestion Catalogue</h3>
+                <div class="form-row">
+                    <div style="display:flex; gap:5px;">
+                        <input type="text" id="nomCat" placeholder="Nouvelle catégorie..." style="flex:1;">
+                        <button class="btn btn-outline" onclick="ajouterCategorie()">+</button>
+                    </div>
+                    <div style="display:flex; gap:5px;">
+                        <input type="text" id="nomProd" placeholder="Produit..." style="flex:1;">
+                        <select id="selectCat" style="flex:1;"></select>
+                        <button class="btn btn-gold" onclick="ajouterProduit()">+</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="box">
+                <h3>3. Mise à jour Stock</h3>
+                <div class="form-row">
+                    <input type="text" id="quickSearch" placeholder="🔍 Recherche produit..." oninput="quickSearchProd()">
+                    <div style="display:flex; gap:5px;">
+                        <select id="stockCatSelect" onchange="updateStockProdList()" style="flex:1;"></select>
+                        <select id="stockProdSelect" style="flex:2;"></select>
+                    </div>
+                    <div style="display:flex; gap:5px;">
+                        <select id="stockJourSelect" style="flex:1;"></select>
+                        <input type="number" id="stockValeur" placeholder="Qté" style="width:70px;">
+                        <button class="btn btn-gold" onclick="validerStock()">OK</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="box">
+                <h3>4. Affichage</h3>
+                <div class="form-row">
+                    <select id="filterCategory" onchange="relancerRender()">
+                        <option value="all" selected>📁 Toutes les catégories</option>
+                    </select>
+                    <select id="viewMode" onchange="relancerRender()">
+                        <option value="semaine">📅 Semaine complète</option>
+                        <option value="Lundi">Lundi</option><option value="Mardi">Mardi</option>
+                        <option value="Mercredi">Mercredi</option><option value="Jeudi">Jeudi</option>
+                        <option value="Vendredi">Vendredi</option><option value="Samedi">Samedi</option>
+                        <option value="Dimanche">Dimanche</option>
+                    </select>
+                    <button class="btn btn-outline" id="btnFiltre" onclick="toggleFiltre()">🔍 Masquer "Reste à 0"</button>
+                </div>
             </div>
         </div>
 
-        <div class="box">
-            <h3>2. Gestion Catalogue</h3>
-            <div class="form-row">
-                <div style="display:flex; gap:5px;">
-                    <input type="text" id="nomCat" placeholder="Nouvelle catégorie..." style="flex:1;">
-                    <button class="btn btn-outline" onclick="ajouterCategorie()">+</button>
-                </div>
-                <div style="display:flex; gap:5px;">
-                    <input type="text" id="nomProd" placeholder="Produit..." style="flex:1;">
-                    <select id="selectCat" style="flex:1;"></select>
-                    <button class="btn btn-gold" onclick="ajouterProduit()">+</button>
-                </div>
-            </div>
+        <div id="listeCategories"></div>
+
+        <div class="footer-actions">
+            <button class="btn btn-red" onclick="resetBoutiqueTotale()">⚠️ RÉINITIALISER TOUTE LA BOUTIQUE (VIDER TOUT)</button>
         </div>
-
-        <div class="box">
-            <h3>3. Mise à jour Stock</h3>
-            <div class="form-row">
-                <input type="text" id="quickSearch" placeholder="🔍 Recherche produit..." oninput="quickSearchProd()">
-                <div style="display:flex; gap:5px;">
-                    <select id="stockCatSelect" onchange="updateStockProdList()" style="flex:1;"></select>
-                    <select id="stockProdSelect" style="flex:2;"></select>
-                </div>
-                <div style="display:flex; gap:5px;">
-                    <select id="stockJourSelect" style="flex:1;"></select>
-                    <input type="number" id="stockValeur" placeholder="Qté" style="width:70px;">
-                    <button class="btn btn-gold" onclick="validerStock()">OK</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="box">
-            <h3>4. Affichage</h3>
-            <div class="form-row">
-                <select id="filterCategory" onchange="relancerRender()">
-                    <option value="all" selected>📁 Toutes les catégories</option>
-                </select>
-                <select id="viewMode" onchange="relancerRender()">
-                    <option value="semaine">📅 Semaine complète</option>
-                    <option value="Lundi">Lundi</option><option value="Mardi">Mardi</option>
-                    <option value="Mercredi">Mercredi</option><option value="Jeudi">Jeudi</option>
-                    <option value="Vendredi">Vendredi</option><option value="Samedi">Samedi</option>
-                    <option value="Dimanche">Dimanche</option>
-                </select>
-                <button class="btn btn-outline" id="btnFiltre" onclick="toggleFiltre()">🔍 Masquer "Reste à 0"</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="listeCategories"></div>
-
-    <div class="footer-actions">
-        <button class="btn btn-red" onclick="resetBoutiqueTotale()">⚠️ RÉINITIALISER TOUTE LA BOUTIQUE (VIDER TOUT)</button>
     </div>
 </div>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getDatabase, ref, set, onValue, remove, push, update, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+  const BOUTIQUE_ID = "villeparisis"; // Identifiant spécifique
+  
+  // --- GESTION LOGIN ---
+  window.checkLogin = () => {
+      const pass = document.getElementById('passInput').value;
+      const mdpAttendu = "1234"; // MODIFIEZ VOTRE CODE ICI (LIGNE 142)
+      if(pass === mdpAttendu) {
+          document.getElementById('login-screen').style.display = 'none';
+          document.getElementById('main-content').style.display = 'block';
+          activerWakeLock();
+      } else {
+          document.getElementById('error-msg').style.display = 'block';
+          document.getElementById('passInput').value = "";
+      }
+  };
+  // Entrée avec touche 'Entrée'
+  document.getElementById('passInput').addEventListener('keypress', (e) => { if(e.key === 'Enter') checkLogin(); });
 
   const firebaseConfig = {
     apiKey: "AIzaSyAbrOwjPc1eOpMF8I8A-LLhiPO8toiu3oQ",
@@ -164,7 +214,7 @@
     }
   };
 
-  onValue(ref(db, '/'), (snapshot) => {
+  onValue(ref(db, BOUTIQUE_ID), (snapshot) => {
     globalData = snapshot.val() || {};
     document.getElementById('status').innerText = "● EN LIGNE";
     if(globalData.config?.dates) {
@@ -175,7 +225,7 @@
   });
 
   window.relancerRender = () => render(globalData);
-  window.toggleFait = (pID, jour, actuel) => set(ref(db, `production/${pID}/${jour}/fait`), !actuel);
+  window.toggleFait = (pID, jour, actuel) => set(ref(db, `${BOUTIQUE_ID}/production/${pID}/${jour}/fait`), !actuel);
 
   window.toggleFiltre = () => { 
     filtreActif = !filtreActif; 
@@ -259,12 +309,12 @@
         parent.appendChild(section);
 
         new Sortable(tbody, { handle: '.handle-prod', animation: 150, onEnd: () => {
-            tbody.querySelectorAll('tr').forEach((row, i) => update(ref(db, `categories/${catID}/produits/${row.dataset.id}`), { ordre: i }));
+            tbody.querySelectorAll('tr').forEach((row, i) => update(ref(db, `${BOUTIQUE_ID}/categories/${catID}/produits/${row.dataset.id}`), { ordre: i }));
         }});
     });
 
     new Sortable(parent, { handle: '.cat-title', animation: 150, onEnd: () => {
-        parent.querySelectorAll('.categorie-container').forEach((block, i) => update(ref(db, `categories/${block.dataset.id}`), { ordre: i }));
+        parent.querySelectorAll('.categorie-container').forEach((block, i) => update(ref(db, `${BOUTIQUE_ID}/categories/${block.dataset.id}`), { ordre: i }));
     }});
     filterCatDropdown.value = currentFilter;
   }
@@ -278,24 +328,24 @@
     });
   };
 
-  window.supprimerCat = (id) => { if(confirm("Supprimer la catégorie ?")) remove(ref(db, `categories/${id}`)); };
-  window.supprimerProd = (cid, pid) => { if(confirm("Supprimer le produit ?")) remove(ref(db, `categories/${cid}/produits/${pid}`)); };
+  window.supprimerCat = (id) => { if(confirm("Supprimer la catégorie ?")) remove(ref(db, `${BOUTIQUE_ID}/categories/${id}`)); };
+  window.supprimerProd = (cid, pid) => { if(confirm("Supprimer le produit ?")) remove(ref(db, `${BOUTIQUE_ID}/categories/${cid}/produits/${pid}`)); };
   
   window.validerStock = () => {
     const pVal = document.getElementById('stockProdSelect').value;
     const jVal = document.getElementById('stockJourSelect').value;
     const sVal = document.getElementById('stockValeur').value;
     if(!jVal || !pVal || sVal==="") return alert("Saisie incomplète");
-    set(ref(db, `production/${pVal.split('/')[1]}/${jVal}/stock`), parseInt(sVal)).then(() => document.getElementById('stockValeur').value = "");
+    set(ref(db, `${BOUTIQUE_ID}/production/${pVal.split('/')[1]}/${jVal}/stock`), parseInt(sVal)).then(() => document.getElementById('stockValeur').value = "");
   };
 
   window.resetStocksUniquement = async () => {
-      if(confirm("Vider les stocks et les validations vertes uniquement ?")) {
-          const s = await get(ref(db, 'production'));
+      if(confirm("Vider les stocks et les validations vertes uniquement pour Villeparisis ?")) {
+          const s = await get(ref(db, `${BOUTIQUE_ID}/production`));
           if(s.exists()){
               let d = s.val();
               Object.keys(d).forEach(p => Object.keys(d[p]).forEach(j => { delete d[p][j].stock; delete d[p][j].fait; }));
-              set(ref(db, 'production'), d);
+              set(ref(db, `${BOUTIQUE_ID}/production`), d);
           }
       }
   };
@@ -303,16 +353,16 @@
   window.resetBoutiqueTotale = async () => {
       if(confirm("⚠️ ATTENTION : Supprimer TOUTES les catégories et TOUS les produits ?")) {
           if(confirm("Êtes-vous ABSOLUMENT certain ?")) {
-              await remove(ref(db, '/'));
+              await remove(ref(db, BOUTIQUE_ID));
               location.reload();
           }
       }
   };
 
-  window.ajouterCategorie = () => { const n = document.getElementById('nomCat').value; if(n) push(ref(db, 'categories'), { nom: n, ordre: 99 }); document.getElementById('nomCat').value=""; };
-  window.ajouterProduit = () => { const n = document.getElementById('nomProd').value; const c = document.getElementById('selectCat').value; if(n && c) push(ref(db, `categories/${c}/produits`), { nom: n, ordre: 99 }); document.getElementById('nomProd').value=""; };
-  window.updateVal = (p, j, t, v) => set(ref(db, `production/${p}/${j}/${t}`), parseInt(v));
-  window.sauverDates = () => set(ref(db, 'config/dates'), { debut: document.getElementById('dateDebut').value, fin: document.getElementById('dateFin').value });
+  window.ajouterCategorie = () => { const n = document.getElementById('nomCat').value; if(n) push(ref(db, `${BOUTIQUE_ID}/categories`), { nom: n, ordre: 99 }); document.getElementById('nomCat').value=""; };
+  window.ajouterProduit = () => { const n = document.getElementById('nomProd').value; const c = document.getElementById('selectCat').value; if(n && c) push(ref(db, `${BOUTIQUE_ID}/categories/${c}/produits`), { nom: n, ordre: 99 }); document.getElementById('nomProd').value=""; };
+  window.updateVal = (p, j, t, v) => set(ref(db, `${BOUTIQUE_ID}/production/${p}/${j}/${t}`), parseInt(v));
+  window.sauverDates = () => set(ref(db, `${BOUTIQUE_ID}/config/dates`), { debut: document.getElementById('dateDebut').value, fin: document.getElementById('dateFin').value });
   
   window.updateStockProdList = () => {
       const cID = document.getElementById('stockCatSelect').value;
