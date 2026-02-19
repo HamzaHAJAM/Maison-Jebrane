@@ -11,12 +11,11 @@
         body { font-family: 'Playfair Display', serif; margin: 0; padding: 20px; background-color: #1a1a1a; color: #f4f4f4; }
         .container { max-width: 1600px; margin: auto; }
         .header { display: flex; align-items: center; justify-content: center; gap: 20px; margin-bottom: 20px; border-bottom: 2px solid #D4AF37; padding-bottom: 15px; }
-        .logo { height: 50px; }
         h2 { color: #D4AF37; margin: 0; text-transform: uppercase; letter-spacing: 2px; }
         
         .admin-panel { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; margin-bottom: 25px; }
         .box { background: #262626; padding: 15px; border-radius: 12px; border: 1px solid #444; }
-        h3 { color: #D4AF37; font-size: 0.8em; text-transform: uppercase; margin-top: 0; border-bottom: 1px solid #444; padding-bottom: 5px; margin-bottom: 10px; }
+        h3 { color: #D4AF37; font-size: 0.8em; text-transform: uppercase; margin: 0 0 10px 0; border-bottom: 1px solid #444; padding-bottom: 5px; }
         .form-row { display: flex; flex-direction: column; gap: 10px; }
         
         select, input { padding: 10px; background: #333; color: white; border: 1px solid #555; border-radius: 6px; font-family: sans-serif; }
@@ -42,7 +41,8 @@
         .label-sub { font-size: 0.55em; color: #aaa; margin-bottom: 2px; }
         
         .stock-vide { background-color: #d35400 !important; color: white !important; }
-        .reste-positif { background-color: #c0392b !important; color: white !important; }
+        .reste-positif { background-color: #c0392b !important; color: white !important; cursor: pointer; }
+        .produit-fait { background-color: #27ae60 !important; color: white !important; cursor: pointer; }
         
         .val-obj { background: transparent; color: #fff; border: none; width: 100%; text-align: center; font-weight: bold; font-size: 1.1em; }
         .val-stock { font-weight: bold; font-size: 1.1em; }
@@ -51,6 +51,7 @@
         #status { font-size: 0.6em; padding: 4px 10px; border-radius: 20px; border: 1px solid #D4AF37; color: #D4AF37; }
         .delete-icon { color: #ff4d4d; cursor: pointer; margin-left: 10px; font-weight: bold; }
         .hidden-col { display: none; }
+        .highlight-search { background-color: #555 !important; }
     </style>
 </head>
 <body>
@@ -65,8 +66,8 @@
             <h3>1. Période & Rapports</h3>
             <div class="form-row">
                 <div style="display:flex; gap:5px;">
-                    <input type="date" id="dateDebut" onchange="sauverDates()">
-                    <input type="date" id="dateFin" onchange="sauverDates()">
+                    <input type="date" id="dateDebut" onchange="sauverDates()" style="flex:1;">
+                    <input type="date" id="dateFin" onchange="sauverDates()" style="flex:1;">
                 </div>
                 <button class="btn btn-gold" onclick="exporterExcel()">📊 Rapport Excel</button>
                 <button class="btn btn-orange" onclick="resetStocksUniquement()">🔄 Vider les stocks</button>
@@ -76,23 +77,28 @@
         <div class="box">
             <h3>2. Gestion Catalogue</h3>
             <div class="form-row">
-                <input type="text" id="nomCat" placeholder="Nouvelle catégorie...">
-                <button class="btn btn-outline" onclick="ajouterCategorie()">Ajouter Catégorie</button>
                 <div style="display:flex; gap:5px;">
-                    <input type="text" id="nomProd" placeholder="Nouveau produit..." style="flex:2;">
-                    <select id="selectCat" style="flex:1;"></select>
+                    <input type="text" id="nomCat" placeholder="Nouvelle catégorie..." style="flex:1;">
+                    <button class="btn btn-outline" onclick="ajouterCategorie()">+</button>
                 </div>
-                <button class="btn btn-gold" onclick="ajouterProduit()">Ajouter Produit</button>
+                <div style="display:flex; gap:5px;">
+                    <input type="text" id="nomProd" placeholder="Nouveau produit..." style="flex:1;">
+                    <select id="selectCat" style="flex:1;"></select>
+                    <button class="btn btn-gold" onclick="ajouterProduit()">+</button>
+                </div>
             </div>
         </div>
 
         <div class="box">
             <h3>3. Mise à jour Stock</h3>
             <div class="form-row">
-                <select id="stockCatSelect" onchange="updateStockProdList()"></select>
-                <select id="stockProdSelect"></select>
+                <input type="text" id="quickSearch" placeholder="🔍 Recherche produit..." oninput="quickSearchProd()">
                 <div style="display:flex; gap:5px;">
-                    <select id="stockJourSelect" style="flex:1;"><option value="">Jour...</option></select>
+                    <select id="stockCatSelect" onchange="updateStockProdList()" style="flex:1;"></select>
+                    <select id="stockProdSelect" style="flex:2;"></select>
+                </div>
+                <div style="display:flex; gap:5px;">
+                    <select id="stockJourSelect" style="flex:1;"></select>
                     <input type="number" id="stockValeur" placeholder="Qté" style="width:70px;">
                     <button class="btn btn-gold" onclick="validerStock()">Valider</button>
                 </div>
@@ -129,8 +135,7 @@
     projectId: "maison-jebrane",
     storageBucket: "maison-jebrane.firebasestorage.app",
     messagingSenderId: "541926034379",
-    appId: "1:541926034379:web:f22192e8e40e343a9f044e",
-    measurementId: "G-JQ6XFRENN1"
+    appId: "1:541926034379:web:f22192e8e40e343a9f044e"
   };
 
   const app = initializeApp(firebaseConfig);
@@ -142,7 +147,7 @@
   onValue(ref(db, '/'), (snapshot) => {
     globalData = snapshot.val() || {};
     document.getElementById('status').innerText = "● EN LIGNE";
-    if(globalData.config && globalData.config.dates) {
+    if(globalData.config?.dates) {
         document.getElementById('dateDebut').value = globalData.config.dates.debut || "";
         document.getElementById('dateFin').value = globalData.config.dates.fin || "";
     }
@@ -151,6 +156,7 @@
 
   window.relancerRender = () => render(globalData);
   window.toggleFiltre = () => { filtreActif = !filtreActif; document.getElementById('btnFiltre').classList.toggle('btn-orange', filtreActif); render(globalData); };
+  window.toggleFait = (pID, jour, actuel) => set(ref(db, `production/${pID}/${jour}/fait`), !actuel);
 
   function render(data) {
     const containers = data.categories || {};
@@ -199,39 +205,40 @@
         const sortedPKeys = Object.keys(produits).sort((a,b) => (produits[a].ordre || 0) - (produits[b].ordre || 0));
 
         sortedPKeys.forEach(pID => {
-            // LOGIQUE DE FILTRAGE
             if (filtreActif) {
-                let aProduireSurLaVue = false;
+                let show = false;
                 jours.forEach(j => {
                     if (viewMode === "semaine" || viewMode === j) {
-                        const v = (production[pID] && production[pID][j]) ? production[pID][j] : {};
-                        const hasS = v.hasOwnProperty('stock');
-                        const obj = parseInt(v.obj) || 0;
-                        const stk = hasS ? parseInt(v.stock) : null;
-                        const rst = hasS ? Math.max(0, obj - stk) : obj;
-                        if (rst > 0) aProduireSurLaVue = true;
+                        const v = production[pID]?.[j] || {};
+                        const r = (parseInt(v.obj)||0) - (parseInt(v.stock)||0);
+                        if (r > 0) show = true;
                     }
                 });
-                if (!aProduireSurLaVue) return; // On saute ce produit
+                if (!show) return;
             }
 
             const tr = document.createElement('tr');
             tr.dataset.id = pID;
-            let htmlProd = `<td class="prod-name"><span class="handle-prod">⋮⋮</span> ${produits[pID].nom}</td>`;
+            let htmlProd = `<td class="prod-name"><span class="handle-prod">⋮⋮</span> ${produits[pID].nom} <span class="delete-icon" onclick="supprimerProd('${catID}','${pID}')">×</span></td>`;
             
             jours.forEach(j => {
                 const isHidden = (viewMode !== "semaine" && viewMode !== j) ? "hidden-col" : "";
-                const v = (production[pID] && production[pID][j]) ? production[pID][j] : {};
+                const v = production[pID]?.[j] || {};
                 const hasS = v.hasOwnProperty('stock');
                 const obj = parseInt(v.obj) || 0;
                 const stk = hasS ? parseInt(v.stock) : null;
                 const rst = hasS ? Math.max(0, obj - stk) : obj;
+                const isFait = v.fait === true;
+                const resteClass = (hasS && rst > 0) ? (isFait ? 'produit-fait' : 'reste-positif') : '';
 
                 htmlProd += `<td class="${isHidden}">
                     <div class="cell-grid">
                         <div class="sub-cell"><span class="label-sub">Obj</span><input type="number" class="val-obj" value="${obj}" onchange="updateVal('${pID}','${j}','obj',this.value)"></div>
                         <div class="sub-cell ${hasS && stk===0 && obj>0 ? 'stock-vide' : ''}"><span class="label-sub">Stk</span><span class="val-stock">${hasS ? stk : '-'}</span></div>
-                        <div class="sub-cell ${hasS && rst>0 ? 'reste-positif' : ''}"><span class="label-sub">Rst</span><span class="val-prod">${hasS ? rst : '-'}</span></div>
+                        <div class="sub-cell ${resteClass}" ondblclick="toggleFait('${pID}','${j}', ${isFait})">
+                            <span class="label-sub">Rst</span>
+                            <span class="val-prod">${hasS ? rst : '-'}</span>
+                        </div>
                     </div>
                 </td>`;
             });
@@ -247,27 +254,39 @@
     new Sortable(parent, { handle: '.cat-title', animation: 150, onEnd: () => {
         parent.querySelectorAll('.categorie-container').forEach((block, i) => update(ref(db, `categories/${block.dataset.id}`), { ordre: i }));
     }});
-
     filterCatDropdown.value = currentFilter;
   }
 
+  window.quickSearchProd = () => {
+    const val = document.getElementById('quickSearch').value.toLowerCase();
+    document.querySelectorAll('tr[data-id]').forEach(tr => {
+        const name = tr.querySelector('.prod-name').innerText.toLowerCase();
+        tr.style.display = name.includes(val) ? "" : "none";
+        tr.classList.toggle('highlight-search', val !== "" && name.includes(val));
+    });
+  };
+
+  window.supprimerCat = (id) => { if(confirm("Supprimer la catégorie ?")) remove(ref(db, `categories/${id}`)); };
+  window.supprimerProd = (cid, pid) => { if(confirm("Supprimer le produit ?")) remove(ref(db, `categories/${cid}/produits/${pid}`)); };
+  
   window.validerStock = () => {
     const pVal = document.getElementById('stockProdSelect').value;
     const jVal = document.getElementById('stockJourSelect').value;
     const sVal = document.getElementById('stockValeur').value;
-    if(!jVal || !pVal || sVal==="") return alert("Remplis tout !");
+    if(!jVal || !pVal || sVal==="") return alert("Saisie incomplète");
     const [cID, pID] = pVal.split('/');
-    set(ref(db, `production/${pID}/${jVal}/stock`), parseInt(sVal)).then(() => {
-        document.getElementById('stockValeur').value = "";
-    });
+    set(ref(db, `production/${pID}/${jVal}/stock`), parseInt(sVal)).then(() => document.getElementById('stockValeur').value = "");
   };
 
   window.resetStocksUniquement = async () => {
-      if(confirm("Vider les stocks de Villeparisis ?")) {
+      if(confirm("Vider les stocks et les validations vertes ?")) {
           const s = await get(ref(db, 'production'));
           if(s.exists()){
               let d = s.val();
-              Object.keys(d).forEach(p => Object.keys(d[p]).forEach(j => { if(d[p][j].hasOwnProperty('stock')) delete d[p][j].stock; }));
+              Object.keys(d).forEach(p => Object.keys(d[p]).forEach(j => { 
+                  if(d[p][j].hasOwnProperty('stock')) delete d[p][j].stock; 
+                  if(d[p][j].hasOwnProperty('fait')) delete d[p][j].fait; 
+              }));
               set(ref(db, 'production'), d);
           }
       }
@@ -275,7 +294,7 @@
 
   window.ajouterCategorie = () => { const n = document.getElementById('nomCat').value; if(n) push(ref(db, 'categories'), { nom: n, ordre: 99 }); document.getElementById('nomCat').value=""; };
   window.ajouterProduit = () => { const n = document.getElementById('nomProd').value; const c = document.getElementById('selectCat').value; if(n && c) push(ref(db, `categories/${c}/produits`), { nom: n, ordre: 99 }); document.getElementById('nomProd').value=""; };
-  window.updateVal = (p, j, t, v) => set(ref(db, `production/${p}/${j}/${t}`), v);
+  window.updateVal = (p, j, t, v) => set(ref(db, `production/${p}/${j}/${t}`), parseInt(v));
   window.sauverDates = () => set(ref(db, 'config/dates'), { debut: document.getElementById('dateDebut').value, fin: document.getElementById('dateFin').value });
   
   window.updateStockProdList = () => {
@@ -289,6 +308,7 @@
   };
   
   const sj = document.getElementById('stockJourSelect');
+  sj.add(new Option("-- Jour --", ""));
   jours.forEach(j => sj.add(new Option(j, j)));
 
   window.exporterExcel = () => {
@@ -298,14 +318,13 @@
       const dDebut = document.getElementById('dateDebut').value || "SansDate";
       const dFin = document.getElementById('dateFin').value || "SansDate";
       Object.keys(cats).forEach(cID => {
-          const row1 = [""]; jours.forEach(j => row1.push(j, "", ""));
-          const row2 = ["Produit"]; jours.forEach(() => row2.push("Obj", "Stk", "Rst"));
-          const dr = [row1, row2];
+          const dr = [[""], ["Produit"]];
+          jours.forEach(j => { dr[0].push(j, "", ""); dr[1].push("Obj", "Stk", "Rst"); });
           const pList = cats[cID].produits || {};
           Object.keys(pList).sort((a,b)=>(pList[a].ordre||0)-(pList[b].ordre||0)).forEach(pID => {
               const r = [pList[pID].nom];
               jours.forEach(j => {
-                  const v = (prod[pID] && prod[pID][j]) ? prod[pID][j] : {};
+                  const v = prod[pID]?.[j] || {};
                   const hasS = v.hasOwnProperty('stock');
                   r.push(v.obj||0, hasS?v.stock:"-", hasS?Math.max(0,(v.obj||0)-v.stock):"-");
               });
