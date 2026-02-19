@@ -54,7 +54,7 @@
         .highlight-search { background-color: #555 !important; }
     </style>
 </head>
-<body>
+<body onclick="requestWakeLock()">
 
 <div class="container">
     <div class="header">
@@ -108,7 +108,9 @@
         <div class="box">
             <h3>4. Affichage</h3>
             <div class="form-row">
-                <select id="filterCategory" onchange="relancerRender()"></select>
+                <select id="filterCategory" onchange="relancerRender()">
+                    <option value="all" selected>📁 Toutes les catégories</option>
+                </select>
                 <select id="viewMode" onchange="relancerRender()">
                     <option value="semaine">📅 Semaine complète</option>
                     <option value="Lundi">Lundi</option><option value="Mardi">Mardi</option>
@@ -143,6 +145,17 @@
   const jours = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
   let globalData = {};
   let filtreActif = false;
+  let wakeLock = null;
+
+  // --- GESTION MISE EN VEILLE ---
+  async function requestWakeLock() {
+    try {
+      if ('wakeLock' in navigator) {
+        wakeLock = await navigator.wakeLock.request('screen');
+        console.log("Anti-mise en veille activé.");
+      }
+    } catch (err) { console.error(`${err.name}, ${err.message}`); }
+  }
 
   onValue(ref(db, '/'), (snapshot) => {
     globalData = snapshot.val() || {};
@@ -179,10 +192,11 @@
     const stockCatSelect = document.getElementById('stockCatSelect');
     const filterCatDropdown = document.getElementById('filterCategory');
     const viewMode = document.getElementById('viewMode').value;
-    const catToFilter = filterCatDropdown.value;
+    
+    // On garde la valeur du filtre CATEGORIE si elle existe, sinon par défaut "all"
+    let currentFilter = filterCatDropdown.value || "all";
     
     parent.innerHTML = ""; 
-    const currentFilter = filterCatDropdown.value;
     selectCat.innerHTML = '<option value="">Choix catégorie...</option>';
     stockCatSelect.innerHTML = '<option value="">-- Catégorie --</option>';
     filterCatDropdown.innerHTML = '<option value="all">📁 Toutes les catégories</option>';
@@ -195,7 +209,7 @@
         stockCatSelect.add(new Option(cat.nom, catID));
         filterCatDropdown.add(new Option(cat.nom, catID));
 
-        if(catToFilter !== "all" && catToFilter !== catID) return;
+        if(currentFilter !== "all" && currentFilter !== catID) return;
 
         const section = document.createElement('div');
         section.className = "categorie-container";
@@ -270,6 +284,7 @@
     filterCatDropdown.value = currentFilter;
   }
 
+  // --- CATALOGUE ---
   window.quickSearchProd = () => {
     const val = document.getElementById('quickSearch').value.toLowerCase();
     document.querySelectorAll('tr[data-id]').forEach(tr => {
@@ -348,8 +363,4 @@
           for(let i=0; i<7; i++) ws['!merges'].push({ s:{r:0, c:1+(i*3)}, e:{r:0, c:3+(i*3)} });
           XLSX.utils.book_append_sheet(wb, ws, cats[cID].nom.substring(0,30));
       });
-      XLSX.writeFile(wb, `Rapport_Villeparisis_${dDebut}_au_${dFin}.xlsx`);
-  };
-</script>
-</body>
-</html>
+      XLSX.writeFile(wb, `Rapport_Villeparisis_${d
