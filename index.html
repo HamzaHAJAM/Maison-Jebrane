@@ -10,7 +10,10 @@
         :root { --cell-padding: 6px; --font-size-base: 0.85em; }
         body { font-family: 'Playfair Display', serif; margin: 0; padding: 20px; background-color: #1a1a1a; color: #f4f4f4; }
         .container { max-width: 1600px; margin: auto; }
-        .header { display: flex; align-items: center; justify-content: center; gap: 20px; margin-bottom: 20px; border-bottom: 2px solid #D4AF37; padding-bottom: 15px; }
+        
+        /* Header avec Logo */
+        .header { display: flex; align-items: center; justify-content: center; gap: 25px; margin-bottom: 20px; border-bottom: 2px solid #D4AF37; padding-bottom: 15px; }
+        .logo { width: 80px; height: auto; object-fit: contain; }
         h2 { color: #D4AF37; margin: 0; text-transform: uppercase; letter-spacing: 2px; }
         
         .admin-panel { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; margin-bottom: 25px; }
@@ -49,7 +52,7 @@
         .val-stock { font-weight: bold; font-size: 1.1em; }
         .val-prod { font-weight: bold; font-size: 1.2em; }
         
-        #status { font-size: 0.6em; padding: 4px 10px; border-radius: 20px; border: 1px solid #D4AF37; color: #D4AF37; }
+        #status { font-size: 0.6em; padding: 4px 10px; border-radius: 20px; border: 1px solid #D4AF37; color: #D4AF37; vertical-align: middle; }
         .delete-icon { color: #ff4d4d; cursor: pointer; margin-left: 10px; font-weight: bold; }
         .hidden-col { display: none; }
         .highlight-search { background-color: #555 !important; }
@@ -61,6 +64,7 @@
 
 <div class="container">
     <div class="header">
+        <img src="logo.png" alt="Logo Maison Jebrane" class="logo">
         <h2>Maison Jebrane Villeparisis <span id="status">Connexion...</span></h2>
     </div>
 
@@ -154,7 +158,6 @@
   let filtreActif = false;
   let wakeLock = null;
 
-  // Anti-veille
   window.activerWakeLock = async () => {
     if (!wakeLock && 'wakeLock' in navigator) {
         try { wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
@@ -266,7 +269,6 @@
     filterCatDropdown.value = currentFilter;
   }
 
-  // --- ACTIONS ---
   window.quickSearchProd = () => {
     const val = document.getElementById('quickSearch').value.toLowerCase();
     document.querySelectorAll('tr[data-id]').forEach(tr => {
@@ -299,10 +301,8 @@
   };
 
   window.resetBoutiqueTotale = async () => {
-      const p1 = confirm("⚠️ ATTENTION : Vous allez supprimer TOUTES les catégories et TOUS les produits !");
-      if(p1) {
-          const p2 = confirm("Êtes-vous ABSOLUMENT certain ? Cette action est irréversible.");
-          if(p2) {
+      if(confirm("⚠️ ATTENTION : Supprimer TOUTES les catégories et TOUS les produits ?")) {
+          if(confirm("Êtes-vous ABSOLUMENT certain ?")) {
               await remove(ref(db, '/'));
               location.reload();
           }
